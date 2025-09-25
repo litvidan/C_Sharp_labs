@@ -1,0 +1,12 @@
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep.Strategies\bin\Debug\net9.0\PhilosophersStepByStep.Strategies.deps.json
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep.Strategies\bin\Debug\net9.0\PhilosophersStepByStep.Strategies.dll
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep.Strategies\bin\Debug\net9.0\PhilosophersStepByStep.Strategies.pdb
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep.Strategies\obj\Debug\net9.0\PhilosophersStepByStep.Strategies.GeneratedMSBuildEditorConfig.editorconfig
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep.Strategies\obj\Debug\net9.0\PhilosophersStepByStep.Strategies.AssemblyInfoInputs.cache
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep.Strategies\obj\Debug\net9.0\PhilosophersStepByStep.Strategies.AssemblyInfo.cs
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep.Strategies\obj\Debug\net9.0\PhilosophersStepByStep.Strategies.csproj.CoreCompileInputs.cache
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep.Strategies\obj\Debug\net9.0\PhilosophersStepByStep.Strategies.sourcelink.json
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep.Strategies\obj\Debug\net9.0\PhilosophersStepByStep.Strategies.dll
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep.Strategies\obj\Debug\net9.0\refint\PhilosophersStepByStep.Strategies.dll
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep.Strategies\obj\Debug\net9.0\PhilosophersStepByStep.Strategies.pdb
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep.Strategies\obj\Debug\net9.0\ref\PhilosophersStepByStep.Strategies.dll

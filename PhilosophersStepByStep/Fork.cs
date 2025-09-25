@@ -1,7 +1,16 @@
 using System;
 
-namespace DiningPhilosophers
+namespace PhilosophersStepByStep
 {
+    /// <summary>
+    /// Represents the possible states of a fork.
+    /// </summary>
+    public enum ForkState
+    {
+        Available,
+        InUse
+    }
+
     /// <summary>
     /// Represents a fork that philosophers can pick up and put down.
     /// Simple single-threaded implementation for step-by-step simulation.
@@ -9,37 +18,39 @@ namespace DiningPhilosophers
     public class Fork
     {
         private readonly int _id;
-        private bool _isAvailable;
-        private int? _holderId; // Which philosopher is currently holding this fork
+        private ForkState _state;
+        private Philosopher? _holder;
+        private readonly IMonitor _monitor;
 
-        public Fork(int id)
+        public Fork(int id, IMonitor monitor)
         {
             _id = id;
-            _isAvailable = true;
-            _holderId = null;
+            _state = ForkState.Available;
+            _holder = null;
+            _monitor = monitor;
         }
 
         public int Id => _id;
-        public bool IsAvailable => _isAvailable;
-        public int? HolderId => _holderId;
+        public ForkState State => _state;
+        public bool IsAvailable => _state == ForkState.Available;
 
         /// <summary>
         /// Attempts to pick up the fork. Returns true if successful, false if already taken.
         /// </summary>
         /// <param name="philosopherId">ID of the philosopher trying to pick up the fork</param>
         /// <returns>True if fork was picked up successfully</returns>
-        public bool TryPickUp(int philosopherId)
+        public bool TryPickUp(Philosopher philosopher)
         {
-            if (_isAvailable)
+            if (_state == ForkState.Available)
             {
-                _isAvailable = false;
-                _holderId = philosopherId;
-                Console.WriteLine($"Philosopher {philosopherId} picked up fork {_id}");
+                _state = ForkState.InUse;
+                _holder = philosopher;
+                _monitor.printForkPickup(picker: philosopher.Name, forkId: _id);
                 return true;
             }
             else
             {
-                Console.WriteLine($"Philosopher {philosopherId} failed to pick up fork {_id} (already held by philosopher {_holderId})");
+                _monitor.printForkPickupFail(picker: philosopher.Name, forkId: _id, holder: _holder?.Name ?? "NULL");
                 return false;
             }
         }
@@ -48,19 +59,17 @@ namespace DiningPhilosophers
         /// Puts down the fork, making it available for other philosophers.
         /// </summary>
         /// <param name="philosopherId">ID of the philosopher putting down the fork</param>
-        public void PutDown(int philosopherId)
+        public void PutDown(Philosopher philosopher)
         {
-            if (_holderId == philosopherId)
+            if (_holder == philosopher)
             {
-                _isAvailable = true;
-                _holderId = null;
-                Console.WriteLine($"Philosopher {philosopherId} put down fork {_id}");
+                _state = ForkState.Available;
+                _holder = null;
+                _monitor.printForkPutdown(putter: philosopher.Name, forkId: _id);
             }
             else
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine($"Warning: Philosopher {philosopherId} tried to put down fork {_id} but doesn't hold it (held by philosopher {_holderId})");
-                Console.ResetColor();
+                _monitor.printForkPutdownFail(putter: philosopher.Name, forkId: _id, holder: _holder?.Name ?? "Null");
             }
         }
 
@@ -69,12 +78,25 @@ namespace DiningPhilosophers
         /// </summary>
         public void ForceRelease()
         {
-            if (!_isAvailable)
+            if (_state == ForkState.InUse)
             {
-                Console.WriteLine($"Force releasing fork {_id} from philosopher {_holderId}");
+                _monitor.printForkForceRelease(forkId: _id, holder: _holder?.Name ?? "Null");
             }
-            _isAvailable = true;
-            _holderId = null;
+            _state = ForkState.Available;
+            _holder = null;
+        }
+
+        public string GetStatusDescription()
+        {
+            switch (_state)
+            {
+                case ForkState.Available:
+                    return "Available";
+                case ForkState.InUse:
+                    return $"InUse (used by {_holder?.Name})";
+                default:
+                    return "Unknown state";
+            }
         }
     }
 }

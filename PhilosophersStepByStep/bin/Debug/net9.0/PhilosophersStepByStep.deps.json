@@ -8,7 +8,8 @@
     ".NETCoreApp,Version=v9.0": {
       "PhilosophersStepByStep/1.0.0": {
         "dependencies": {
-          "Microsoft.CodeAnalysis.CSharp": "4.14.0"
+          "Microsoft.CodeAnalysis.CSharp": "4.14.0",
+          "PhilosophersStepByStep.Strategies": "1.0.0"
         },
         "runtime": {
           "PhilosophersStepByStep.dll": {}
@@ -125,7 +126,15 @@
         }
       },
       "System.Collections.Immutable/9.0.0": {},
-      "System.Reflection.Metadata/9.0.0": {}
+      "System.Reflection.Metadata/9.0.0": {},
+      "PhilosophersStepByStep.Strategies/1.0.0": {
+        "runtime": {
+          "PhilosophersStepByStep.Strategies.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
     }
   },
   "libraries": {
@@ -168,6 +177,11 @@
       "sha512": "sha512-ANiqLu3DxW9kol/hMmTWbt3414t9ftdIuiIU7j80okq2YzAueo120M442xk1kDJWtmZTqWQn7wHDvMRipVOEOQ==",
       "path": "system.reflection.metadata/9.0.0",
       "hashPath": "system.reflection.metadata.9.0.0.nupkg.sha512"
+    },
+    "PhilosophersStepByStep.Strategies/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
     }
   }
 }

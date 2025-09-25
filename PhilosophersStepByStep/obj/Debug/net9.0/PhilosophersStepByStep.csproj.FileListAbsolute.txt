@@ -42,3 +42,6 @@ D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\Philos
 D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep\obj\Debug\net9.0\PhilosophersStepByStep.pdb
 D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep\obj\Debug\net9.0\PhilosophersStepByStep.genruntimeconfig.cache
 D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep\obj\Debug\net9.0\ref\PhilosophersStepByStep.dll
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep\obj\Debug\net9.0\PhilosophersStepByStep.sourcelink.json
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep\bin\Debug\net9.0\PhilosophersStepByStep.Strategies.dll
+D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\Цэ Хэштег\PhilosophersStepByStep\bin\Debug\net9.0\PhilosophersStepByStep.Strategies.pdb

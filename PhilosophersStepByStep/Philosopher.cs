@@ -1,7 +1,19 @@
 using System;
+using PhilosophersStepByStep.Strategies;
 
-namespace DiningPhilosophers
+namespace PhilosophersStepByStep
 {
+
+    /// <summary>
+    /// Represents the possible states of a philosopher.
+    /// </summary>
+    public enum PhilosopherState
+    {
+        Thinking,
+        Hungry,
+        Eating
+    }
+
     /// <summary>
     /// Represents a philosopher who alternates between thinking and eating.
     /// Single-threaded step-by-step simulation with discrete time steps.
@@ -9,9 +21,11 @@ namespace DiningPhilosophers
     public class Philosopher
     {
         private readonly int _id;
+        private readonly string _name;
         private readonly Fork _leftFork;
         private readonly Fork _rightFork;
         private readonly Random _random;
+        private readonly IForkStrategy _forkStrategy;
         
         private int _eatCount;
         private int _thinkCount;
@@ -19,12 +33,15 @@ namespace DiningPhilosophers
         private int _remainingTime; // Steps remaining in current state
         private Fork? _heldFork1;
         private Fork? _heldFork2;
+        private int _attemptsToGetSecondFork; // Count attempts to get second fork
 
-        public Philosopher(int id, Fork leftFork, Fork rightFork)
+        public Philosopher(int id, string name, Fork leftFork, Fork rightFork, IForkStrategy forkStrategy)
         {
             _id = id;
+            _name = name;
             _leftFork = leftFork;
             _rightFork = rightFork;
+            _forkStrategy = forkStrategy ?? throw new ArgumentNullException(nameof(forkStrategy));
             _random = new Random();
             _eatCount = 0;
             _thinkCount = 0;
@@ -32,9 +49,11 @@ namespace DiningPhilosophers
             _remainingTime = 0;
             _heldFork1 = null;
             _heldFork2 = null;
+            _attemptsToGetSecondFork = 0;
         }
 
         public int Id => _id;
+        public string Name => _name;
         public int EatCount => _eatCount;
         public int ThinkCount => _thinkCount;
         public PhilosopherState State => _state;
@@ -69,8 +88,7 @@ namespace DiningPhilosophers
             if (_remainingTime <= 0)
             {
                 // Start thinking
-                _remainingTime = _random.Next(3, 8); // Think for 3-7 steps
-                Console.WriteLine($"Philosopher {_id} starts thinking for {_remainingTime} steps");
+                _remainingTime = _random.Next(3, 10); // Think for 3-7 steps
                 return true;
             }
             else
@@ -81,62 +99,63 @@ namespace DiningPhilosophers
                 {
                     _thinkCount++;
                     _state = PhilosopherState.Hungry;
-                    Console.WriteLine($"Philosopher {_id} finished thinking (total: {_thinkCount}) and is now hungry");
                 }
                 return true;
             }
         }
 
         /// <summary>
-        /// Executes a hungry step - tries to acquire forks.
+        /// Executes a hungry step - tries to acquire forks one by one using the fork strategy or delegating this to Coordinator.
         /// </summary>
         private bool ExecuteHungryStep()
         {
-            Console.WriteLine($"Philosopher {_id} is hungry and wants to eat");
+            // If we don't have any forks, try to get the first one
+            if (_heldFork1 == null)
+            {
 
-            // Deadlock prevention: always acquire forks in a consistent order
-            Fork firstFork, secondFork;
-            
-            if (_id % 2 == 0)
-            {
-                // Even-numbered philosophers: left fork first, then right fork
-                firstFork = _leftFork;
-                secondFork = _rightFork;
-            }
-            else
-            {
-                // Odd-numbered philosophers: right fork first, then left fork
-                firstFork = _rightFork;
-                secondFork = _leftFork;
-            }
+                // Use strategy to determine which fork to try first
+                Fork firstFork = (Fork)_forkStrategy.GetFirstFork(_id, _leftFork, _rightFork);
 
-            // Try to acquire the first fork
-            if (firstFork.TryPickUp(_id))
-            {
-                _heldFork1 = firstFork;
-                
-                // Try to acquire the second fork
-                if (secondFork.TryPickUp(_id))
+                // Try to acquire the first fork
+                if (firstFork.TryPickUp(this))
                 {
-                    _heldFork2 = secondFork;
-                    _state = PhilosopherState.Eating;
-                    _remainingTime = _random.Next(2, 6); // Eat for 2-5 steps
-                    Console.WriteLine($"Philosopher {_id} acquired both forks and starts eating for {_remainingTime} steps");
+                    _heldFork1 = firstFork;
                     return true;
                 }
                 else
                 {
-                    // Couldn't get second fork, release the first one
-                    firstFork.PutDown(_id);
-                    _heldFork1 = null;
-                    Console.WriteLine($"Philosopher {_id} couldn't get second fork, released first fork");
                     return true;
                 }
             }
+            // If we have one fork, try to get the second one
             else
             {
-                Console.WriteLine($"Philosopher {_id} couldn't get first fork, will try again next step");
-                return true;
+                _attemptsToGetSecondFork++;
+                
+                // Use strategy to determine which fork to try second
+                Fork secondFork = (Fork)_forkStrategy.GetSecondFork(_id, _leftFork, _rightFork, _heldFork1);
+
+                // Try to acquire the second fork
+                if (secondFork.TryPickUp(this))
+                {
+                    _heldFork2 = secondFork;
+                    _state = PhilosopherState.Eating;
+                    _remainingTime = _random.Next(4, 5); // Eat for 2-5 steps
+                    _attemptsToGetSecondFork = 0; // Reset counter
+                    return true;
+                }
+                else
+                {
+                    // Use strategy to determine if we should release the first fork
+                    int maxAttempts = _forkStrategy.GetMaxAttempts(_id);
+                    if (_forkStrategy.ShouldReleaseFirstFork(_id, _attemptsToGetSecondFork, maxAttempts))
+                    {
+                        _heldFork1?.PutDown(this);
+                        _heldFork1 = null;
+                        _attemptsToGetSecondFork = 0;
+                    }
+                    return true;
+                }
             }
         }
 
@@ -149,17 +168,16 @@ namespace DiningPhilosophers
             {
                 // Finish eating
                 _eatCount++;
-                Console.WriteLine($"Philosopher {_id} finished eating (total: {_eatCount})");
                 
                 // Release both forks
                 if (_heldFork1 != null)
                 {
-                    _heldFork1.PutDown(_id);
+                    _heldFork1.PutDown(this);
                     _heldFork1 = null;
                 }
                 if (_heldFork2 != null)
                 {
-                    _heldFork2.PutDown(_id);
+                    _heldFork2.PutDown(this);
                     _heldFork2 = null;
                 }
                 
@@ -171,11 +189,6 @@ namespace DiningPhilosophers
             {
                 // Continue eating
                 _remainingTime--;
-                if (_remainingTime <= 0)
-                {
-                    // Will finish eating next step
-                    Console.WriteLine($"Philosopher {_id} is finishing eating...");
-                }
                 return true;
             }
         }
@@ -190,7 +203,10 @@ namespace DiningPhilosophers
                 case PhilosopherState.Thinking:
                     return $"Thinking ({_remainingTime} steps left)";
                 case PhilosopherState.Hungry:
-                    return "Hungry (trying to get forks)";
+                    if (_heldFork1 == null)
+                        return "Hungry (trying to get first fork)";
+                    else
+                        return $"Hungry (holding one fork, trying to get second fork - attempt {_attemptsToGetSecondFork})";
                 case PhilosopherState.Eating:
                     return $"Eating ({_remainingTime} steps left)";
                 default:
@@ -219,16 +235,7 @@ namespace DiningPhilosophers
             _remainingTime = 0;
             _eatCount = 0;
             _thinkCount = 0;
+            _attemptsToGetSecondFork = 0;
         }
-    }
-
-    /// <summary>
-    /// Represents the possible states of a philosopher.
-    /// </summary>
-    public enum PhilosopherState
-    {
-        Thinking,
-        Hungry,
-        Eating
     }
 }

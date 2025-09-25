@@ -1,108 +1,77 @@
-﻿using DiningPhilosophers;
-
-namespace PhilosophersStepByStep
+﻿namespace PhilosophersStepByStep
 {
     class Program
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("=== Single-Threaded Dining Philosophers Simulation ===\n");
-            
+            IMonitor monitor = new ConsoleMonitor();
+
             try
             {
-                // Get number of philosophers from command line or use default
                 int philosopherCount = 5;
-                if (args.Length > 0 && int.TryParse(args[0], out int parsedCount) && parsedCount >= 2)
-                {
-                    philosopherCount = parsedCount;
-                }
-                
-                // Get simulation mode from command line or use default
+
                 string mode = "manual";
+                if (args.Length > 0)
+                {
+                    mode = args[0].ToLower();
+                }
+
+                string? namesFilePath = null;
                 if (args.Length > 1)
                 {
-                    mode = args[1].ToLower();
+                    namesFilePath = args[1];
                 }
-                
-                Console.WriteLine($"Configuration:");
-                Console.WriteLine($"- Philosophers: {philosopherCount}");
-                Console.WriteLine($"- Mode: {mode}");
-                Console.WriteLine($"- Available modes: manual, auto\n");
-                
-                // Create the table
-                var table = new Table(philosopherCount);
-                
-                // Run simulation based on mode
+
+                monitor.printInitialConfiguration(philosopherCount, mode, namesFilePath);
+
+                var table = new Table(monitor, philosopherCount, namesFilePath);
+
                 switch (mode)
                 {
                     case "manual":
-                        RunManualSimulation(table);
+                        RunManualSimulation(table, monitor);
                         break;
                     case "auto":
-                        RunAutoSimulation(table);
+                        RunAutoSimulation(table, monitor);
                         break;
                     default:
-                        Console.WriteLine($"Unknown mode '{mode}'. Using manual mode.");
-                        RunManualSimulation(table);
+                        monitor.printUnknownMode(mode);
+                        RunManualSimulation(table, monitor);
                         break;
                 }
-                
-                Console.WriteLine("\n=== Simulation Complete ===");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error running simulation: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                monitor.printSimRunningExceptionMessage(ex);
             }
-            
-            Console.WriteLine("\nPress any key to exit...");
-            Console.ReadKey();
         }
-        
-        /// <summary>
-        /// Runs the simulation with manual control - user controls each step.
-        /// </summary>
-        static void RunManualSimulation(Table table)
+
+        static void RunManualSimulation(Table table, IMonitor monitor)
         {
-            Console.WriteLine("=== Manual Mode ===");
-            Console.WriteLine("Controls:");
-            Console.WriteLine("  Press Enter = execute next step");
-            Console.WriteLine("  Type a number = run that many steps automatically");
-            Console.WriteLine("  'q' = quit simulation");
-            Console.WriteLine("  'r' = reset simulation");
-            Console.WriteLine("  's' = show current status");
-            Console.WriteLine("  'stats' = show statistics\n");
-            
+            monitor.printManualModePrerequisits();
+
             while (true)
             {
-                Console.Write("Press Enter for next step, or type a number: ");
+                monitor.printManualModeRequest();
                 var input = Console.ReadLine();
-                
+
                 if (string.IsNullOrEmpty(input))
                 {
-                    // Execute one step
                     bool actionPerformed = table.ExecuteStep();
-                    if (!actionPerformed)
-                    {
-                        Console.WriteLine("No actions performed this step.");
-                    }
                 }
                 else if (int.TryParse(input, out int steps) && steps > 0)
                 {
-                    // Execute multiple steps
-                    Console.WriteLine($"Running {steps} steps automatically...\n");
                     for (int i = 0; i < steps; i++)
                     {
                         table.ExecuteStep();
                         if (i < steps - 1)
                         {
-                            System.Threading.Thread.Sleep(300); // Small delay for readability
+                            System.Threading.Thread.Sleep(300);
                         }
                     }
                 }
                 else if (input.ToLower() == "q")
                 {
-                    Console.WriteLine("Quitting simulation...");
                     break;
                 }
                 else if (input.ToLower() == "r")
@@ -111,41 +80,23 @@ namespace PhilosophersStepByStep
                 }
                 else if (input.ToLower() == "s")
                 {
-                    Console.WriteLine($"Current status: {table.GetSimulationSummary()}");
-                }
-                else if (input.ToLower() == "stats")
-                {
-                    table.PrintStatistics();
+                    monitor.printSimStatus(table.GetSimulationSummary());
                 }
                 else
                 {
-                    Console.WriteLine("Invalid input. Press Enter for next step, type a number for multiple steps, or 'q' to quit.");
+                    monitor.printInvalidOption();
                 }
             }
         }
-        
-        /// <summary>
-        /// Runs the simulation automatically with a delay between steps.
-        /// </summary>
-        static void RunAutoSimulation(Table table)
+
+        static void RunAutoSimulation(Table table, IMonitor monitor)
         {
-            Console.WriteLine("=== Auto Mode ===");
-            Console.WriteLine("Running simulation automatically with 1-second delays...\n");
-            
-            for (int step = 1; step <= 20; step++)
+            monitor.printAutoModePrerequisits();
+            for (int step = 1; step <= 1000000; step++)
             {
-                Console.WriteLine($"\n--- Executing Step {step} ---");
                 table.ExecuteStep();
-                
-                if (step < 20)
-                {
-                    Console.WriteLine("Waiting 1 second before next step...");
-                    System.Threading.Thread.Sleep(1000);
-                }
+                System.Threading.Thread.Sleep(1000);
             }
-            
-            table.PrintStatistics();
         }
-        
     }
 }
