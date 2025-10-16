@@ -1,4 +1,7 @@
-﻿namespace PhilosophersStepByStep
+﻿using PhilosophersStepByStep.Coordinators;
+using PhilosophersStepByStep.Strategies;
+
+namespace PhilosophersStepByStep
 {
     class Program
     {
@@ -8,25 +11,24 @@
 
             try
             {
-                int philosopherCount = 5;
+                PhilosopherConfiguration config;
 
-                string mode = "manual";
-                if (args.Length > 0)
+                if (args.Length > 0 && File.Exists(args[0]))
                 {
-                    mode = args[0].ToLower();
+                    config = PhilosopherConfiguration.LoadFromFile(args[0]);
+                }
+                else
+                {
+                    config = PhilosopherConfiguration.CreateDefault();
                 }
 
-                string? namesFilePath = null;
-                if (args.Length > 1)
-                {
-                    namesFilePath = args[1];
-                }
+                monitor.printInitialConfiguration(config.PhilosopherCount, config.Mode, config.NamesFilePath);
 
-                monitor.printInitialConfiguration(philosopherCount, mode, namesFilePath);
+                ICoordinator? coordinator = config.UseCoordinator ? new Coordinator() : null;
 
-                var table = new Table(monitor, philosopherCount, namesFilePath);
+                var table = new Table(monitor, config, new OrderedForkStrategy(), coordinator);
 
-                switch (mode)
+                switch (config.Mode)
                 {
                     case "manual":
                         RunManualSimulation(table, monitor);
@@ -35,7 +37,7 @@
                         RunAutoSimulation(table, monitor);
                         break;
                     default:
-                        monitor.printUnknownMode(mode);
+                        monitor.printUnknownMode(config.Mode);
                         RunManualSimulation(table, monitor);
                         break;
                 }
@@ -92,9 +94,18 @@
         static void RunAutoSimulation(Table table, IMonitor monitor)
         {
             monitor.printAutoModePrerequisits();
+
+
             for (int step = 1; step <= 1000000; step++)
             {
                 table.ExecuteStep();
+
+                if (step % 1000 == 0)
+                {
+                    // CalculateMetrics(table, step);
+                    // monitor.PrintMetrics(metrics);
+                }
+
                 System.Threading.Thread.Sleep(1000);
             }
         }

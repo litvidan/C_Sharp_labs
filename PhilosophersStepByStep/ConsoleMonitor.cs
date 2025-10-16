@@ -24,7 +24,6 @@ namespace PhilosophersStepByStep
 
         }
 
-
         public void printManualModePrerequisits()
         {
             Console.WriteLine("=== Manual Mode ===");
@@ -54,7 +53,12 @@ namespace PhilosophersStepByStep
 
         public void printInvalidOption()
         {
-            Console.WriteLine("Invalid option. Press Enter for next step, type a number for multiple steps, or 'q' to quit.");    
+            Console.WriteLine("Invalid option. Press Enter for next step, type a number for multiple steps, or 'q' to quit.");
+        }
+        
+        public void printConfigurationLoaded(int philosopherCount, int namesLoaded, string? source)
+        {
+            Console.WriteLine($"Configuration loaded: {philosopherCount} philosophers, {namesLoaded} names from {source ?? "default"}");
         }
 
         // Table class prints

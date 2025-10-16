@@ -13,22 +13,35 @@ namespace PhilosophersStepByStep
         private readonly int _philosopherCount;
         private int _currentStep;
 
+        // Metrics
+        private int _throughput;
+        private int _avgEaten;
+        private int _avgWaitingTime;
+        private int _utilisationCoeff;
+        private Dictionary<Philosopher, int> _eatenCountsPerStep = new();
+
         private readonly ICoordinator? _coordinator;
         private readonly IMonitor _monitor;
 
-        public Table(IMonitor monitor, int philosopherCount = 5, string? namesFilePath = null, IForkStrategy? forkStrategy = null, ICoordinator? coordinator = null)
+        public Table(IMonitor monitor, PhilosopherConfiguration config, IForkStrategy? forkStrategy = null, ICoordinator? coordinator = null)
         {
-            if (philosopherCount < 2)
-                throw new ArgumentException("Must have at least 2 philosophers", nameof(philosopherCount));
+            if (config.PhilosopherCount < 2)
+                throw new ArgumentException("Must have at least 2 philosophers", nameof(config.PhilosopherCount));
 
-            _philosopherCount = philosopherCount;
+            _philosopherCount = config.PhilosopherCount;
             _philosophers = new List<Philosopher>();
             _forks = new List<Fork>();
             _currentStep = 0;
             _coordinator = coordinator;
             _monitor = monitor;
 
-            InitializeTable(namesFilePath, forkStrategy ?? new OrderedForkStrategy());
+            _throughput = 0;
+            _avgEaten = 0;
+            _avgWaitingTime = 0;
+            _utilisationCoeff = 0;
+
+
+            InitializeTable(config.PhilosopherNames, forkStrategy ?? new OrderedForkStrategy());
         }
 
         public int PhilosopherCount => _philosopherCount;
@@ -39,11 +52,9 @@ namespace PhilosophersStepByStep
         /// <summary>
         /// Initializes the table with philosophers and forks.
         /// </summary>
-        private void InitializeTable(string? namesFilePath = null, IForkStrategy? forkStrategy = null)
+        private void InitializeTable(List<string> philosopherNames, IForkStrategy? forkStrategy = null)
         {
             _monitor.printTableSetup(_philosopherCount);
-            // Read philosopher names from file if provided
-            var philosopherNames = ReadPhilosopherNames(namesFilePath);
 
             // Create forks
             for (int i = 0; i < _philosopherCount; i++)
@@ -51,64 +62,22 @@ namespace PhilosophersStepByStep
                 _forks.Add(new Fork(i, _monitor));
             }
 
-            // Create philosophers and assign forks
+            // Create philosophers, assign forks and register in coordinator
             for (int i = 0; i < _philosopherCount; i++)
             {
                 Fork leftFork = _forks[i];
                 Fork rightFork = _forks[(i + 1) % _philosopherCount]; // Circular arrangement
                 
+                _coordinator?.RegisterFork(leftFork.Id);
+                _coordinator?.RegisterFork(rightFork.Id);
+
                 string philosopherName = philosopherNames[i];
-                var philosopher = new Philosopher(i, philosopherName, leftFork, rightFork, forkStrategy ?? new OrderedForkStrategy());
+                var philosopher = new Philosopher(i, philosopherName, leftFork, rightFork, forkStrategy ?? new OrderedForkStrategy(), _coordinator);
                 _philosophers.Add(philosopher);
+                _coordinator?.RegisterPhilosopher(philosopher.Id);
                 _monitor.printSitBetween(philosopherName, i, PhilosopherCount);
             }
             _monitor.printTableSetupComplete();
-        }
-
-        /// <summary>
-        /// Reads philosopher names from a file or generates default names.
-        /// </summary>
-        /// <param name="namesFilePath">Path to the file containing philosopher names</param>
-        /// <returns>List of philosopher names</returns>
-        private List<string> ReadPhilosopherNames(string? namesFilePath)
-        {
-            var names = new List<string>();
-            
-            if (!string.IsNullOrEmpty(namesFilePath) && File.Exists(namesFilePath))
-            {
-                try
-                {
-                    var lines = File.ReadAllLines(namesFilePath);
-                    foreach (var line in lines)
-                    {
-                        var trimmedLine = line.Trim();
-                        if (!string.IsNullOrEmpty(trimmedLine))
-                        {
-                            names.Add(trimmedLine);
-                        }
-                    }
-                    _monitor.printNamesLoadingSuccess(philosopherCount: names.Count, fileName: namesFilePath);
-                }
-                catch (Exception ex)
-                {
-                    _monitor.printNamesLoadingError(ex: ex, fileName: namesFilePath);
-                    names.Clear();
-                }
-            }
-            
-            // If we don't have enough names from file, generate default names
-            while (names.Count < _philosopherCount)
-            {
-                names.Add($"Philosopher {names.Count}");
-            }
-            
-            // If we have more names than needed, take only what we need
-            if (names.Count > _philosopherCount)
-            {
-                names = names.Take(_philosopherCount).ToList();
-            }
-            
-            return names;
         }
 
         /// <summary>
@@ -119,9 +88,9 @@ namespace PhilosophersStepByStep
         {
             _currentStep++;
             _monitor.printCurrentStepStatus(_currentStep, _philosophers, _forks);
-            
+
             bool anyAction = false;
-            
+
             // Execute one step for each philosopher
             foreach (var philosopher in _philosophers)
             {
@@ -131,7 +100,7 @@ namespace PhilosophersStepByStep
                     anyAction = true;
                 }
             }
-            
+
             return anyAction;
         }
 
@@ -145,13 +114,13 @@ namespace PhilosophersStepByStep
             {
                 philosopher.Reset();
             }
-            
+
             // Reset all forks
             foreach (var fork in _forks)
             {
                 fork.ForceRelease();
             }
-            
+
             _currentStep = 0;
         }
 
@@ -164,8 +133,31 @@ namespace PhilosophersStepByStep
             var hungryCount = _philosophers.Count(p => p.State == PhilosopherState.Hungry);
             var eatingCount = _philosophers.Count(p => p.State == PhilosopherState.Eating);
             var availableForks = _forks.Count(f => f.IsAvailable);
-            
+
             return $"Step {_currentStep}: {thinkingCount} thinking, {hungryCount} hungry, {eatingCount} eating, {availableForks} forks available";
+        }
+
+        public void CalculateMetrics()
+        {
+            int eaten = 0;
+            int eatenPerTick = 0;
+            int sumEaten = 0;
+            int[] eatenThisStep = new int[_philosophers.Count];
+
+            // Calculate throughput
+            // количество съеденного в единицу времени, по каждому философу и среднее.
+            foreach (var phil in _philosophers)
+            {
+                eaten = phil.EatCount;
+                sumEaten += eaten;
+
+                // Доделать
+                // eatenPerTick = eaten - _eatenPrevStep[]
+            }
+
+            _avgEaten = sumEaten / _philosopherCount;
+
+
         }
     }
 }

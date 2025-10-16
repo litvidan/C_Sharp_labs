@@ -11,6 +11,7 @@ namespace PhilosophersStepByStep
         void printAutoModePrerequisits();
         void printSimStatus(string simSummary);
         void printInvalidOption();
+        void printConfigurationLoaded(int philosopherCount, int namesLoaded, string? source);
 
         // Table class prints
         void printTableSetup(int philosopherCount);
