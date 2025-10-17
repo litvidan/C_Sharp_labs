@@ -22,11 +22,11 @@ namespace PhilosophersStepByStep
                     config = PhilosopherConfiguration.CreateDefault();
                 }
 
-                monitor.printInitialConfiguration(config.PhilosopherCount, config.Mode, config.NamesFilePath);
+                monitor.PrintInitialConfiguration(config.PhilosopherCount, config.Mode, config.NamesFilePath);
 
                 ICoordinator? coordinator = config.UseCoordinator ? new Coordinator() : null;
 
-                var table = new Table(monitor, config, new OrderedForkStrategy(), coordinator);
+                var table = new Table(monitor, config, new DeadlockForkStrategy(), coordinator);
 
                 switch (config.Mode)
                 {
@@ -37,76 +37,79 @@ namespace PhilosophersStepByStep
                         RunAutoSimulation(table, monitor);
                         break;
                     default:
-                        monitor.printUnknownMode(config.Mode);
+                        monitor.PrintUnknownMode(config.Mode);
                         RunManualSimulation(table, monitor);
                         break;
                 }
             }
             catch (Exception ex)
             {
-                monitor.printSimRunningExceptionMessage(ex);
+                monitor.PrintSimRunningExceptionMessage(ex);
             }
         }
 
         static void RunManualSimulation(Table table, IMonitor monitor)
         {
-            monitor.printManualModePrerequisits();
+            monitor.PrintManualModePrerequisits();
 
-            while (true)
+            try
             {
-                monitor.printManualModeRequest();
-                var input = Console.ReadLine();
+                while (true)
+                {
+                    monitor.PrintManualModeRequest();
+                    var input = Console.ReadLine();
 
-                if (string.IsNullOrEmpty(input))
-                {
-                    bool actionPerformed = table.ExecuteStep();
-                }
-                else if (int.TryParse(input, out int steps) && steps > 0)
-                {
-                    for (int i = 0; i < steps; i++)
+                    if (string.IsNullOrEmpty(input))
                     {
                         table.ExecuteStep();
-                        if (i < steps - 1)
+                    }
+                    else if (int.TryParse(input, out int steps) && steps > 0)
+                    {
+                        for (int i = 0; i < steps; i++)
                         {
-                            System.Threading.Thread.Sleep(300);
+                            table.ExecuteStep();
                         }
                     }
-                }
-                else if (input.ToLower() == "q")
-                {
-                    break;
-                }
-                else if (input.ToLower() == "r")
-                {
-                    table.Reset();
-                }
-                else if (input.ToLower() == "s")
-                {
-                    monitor.printSimStatus(table.GetSimulationSummary());
-                }
-                else
-                {
-                    monitor.printInvalidOption();
+                    else if (input.ToLower() == "q")
+                    {
+                        break;
+                    }
+                    else if (input.ToLower() == "r")
+                    {
+                        table.Reset();
+                    }
+                    else if (input.ToLower() == "s")
+                    {
+                        monitor.PrintSimStatus(table.GetSimulationSummary());
+                    }
+                    else
+                    {
+                        monitor.PrintInvalidOption();
+                    }
                 }
             }
+            finally
+            {
+                table.PrintFinalMetrics();
+            }
+
         }
 
         static void RunAutoSimulation(Table table, IMonitor monitor)
         {
-            monitor.printAutoModePrerequisits();
+            monitor.PrintAutoModePrerequisits();
 
-
-            for (int step = 1; step <= 1000000; step++)
+            try
             {
-                table.ExecuteStep();
-
-                if (step % 1000 == 0)
+                for (int step = 1; step <= 1000000; step++)
                 {
-                    // CalculateMetrics(table, step);
-                    // monitor.PrintMetrics(metrics);
+                    table.ExecuteStep(false);
+                    // Thread.Sleep(10);
                 }
-
-                System.Threading.Thread.Sleep(1000);
+            }
+            finally
+            {
+                table.PrintFinalMetrics();
             }
         }
     }

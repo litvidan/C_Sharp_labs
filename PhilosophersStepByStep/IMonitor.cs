@@ -3,30 +3,34 @@ namespace PhilosophersStepByStep
     public interface IMonitor
     {
         // Program.cs
-        void printInitialConfiguration(int philosopherCount, string mode, string? namesFilePath);
-        void printUnknownMode(string mode);
-        void printSimRunningExceptionMessage(Exception ex);
-        void printManualModePrerequisits();
-        void printManualModeRequest();
-        void printAutoModePrerequisits();
-        void printSimStatus(string simSummary);
-        void printInvalidOption();
-        void printConfigurationLoaded(int philosopherCount, int namesLoaded, string? source);
+        void PrintInitialConfiguration(int philosopherCount, string mode, string? namesFilePath);
+        void PrintUnknownMode(string mode);
+        void PrintSimRunningExceptionMessage(Exception ex);
+        void PrintManualModePrerequisits();
+        void PrintManualModeRequest();
+        void PrintAutoModePrerequisits();
+        void PrintSimStatus(string simSummary);
+        void PrintInvalidOption();
+        void PrintConfigurationLoaded(int philosopherCount, int namesLoaded, string? source);
 
         // Table class prints
-        void printTableSetup(int philosopherCount);
-        void printTableSetupComplete();
-        void printSitBetween(string name, int i, int count);
-        void printCurrentStepStatus(int step, List<Philosopher> philosophers, List<Fork> forks);
-        void printNamesLoadingSuccess(int philosopherCount, string fileName);
-        void printNamesLoadingError(Exception ex, string fileName);
+        void PrintTableSetup(int philosopherCount);
+        void PrintTableSetupComplete();
+        void PrintSitBetween(string name, int i, int count);
+        void PrintCurrentStepStatus(int step, List<Philosopher> philosophers, List<Fork> forks, MetricsCalculator metricsCalculator);
+        void PrintNamesLoadingSuccess(int philosopherCount, string fileName);
+        void PrintNamesLoadingError(Exception ex, string fileName);
+        void PrintDeadlockDetected();
 
         // Fork class prints
-        void printForkPickup(string picker, int forkId);
-        void printForkPickupFail(string picker, int forkId, string holder);
-        void printForkPutdown(string putter, int forkId);
-        void printForkPutdownFail(string putter, int forkId, string holder);
-        void printForkForceRelease(int forkId, string holder);
-    }
+        void PrintForkPickup(string picker, int forkId);
+        void PrintForkPickupFail(string picker, int forkId, string holder);
+        void PrintForkPutdown(string putter, int forkId);
+        void PrintForkPutdownFail(string putter, int forkId, string holder);
+        void PrintForkForceRelease(int forkId, string holder);
 
+        string GetPhilosopherStatusDescription(Philosopher philosopher);
+
+        void PrintMetrics(SimulationMetrics metrics);
+    }
 }

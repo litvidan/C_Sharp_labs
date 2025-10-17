@@ -12,13 +12,7 @@ namespace PhilosophersStepByStep
         private readonly List<Fork> _forks;
         private readonly int _philosopherCount;
         private int _currentStep;
-
-        // Metrics
-        private int _throughput;
-        private int _avgEaten;
-        private int _avgWaitingTime;
-        private int _utilisationCoeff;
-        private Dictionary<Philosopher, int> _eatenCountsPerStep = new();
+        private readonly MetricsCalculator _metricsCalculator;
 
         private readonly ICoordinator? _coordinator;
         private readonly IMonitor _monitor;
@@ -34,14 +28,8 @@ namespace PhilosophersStepByStep
             _currentStep = 0;
             _coordinator = coordinator;
             _monitor = monitor;
-
-            _throughput = 0;
-            _avgEaten = 0;
-            _avgWaitingTime = 0;
-            _utilisationCoeff = 0;
-
-
             InitializeTable(config.PhilosopherNames, forkStrategy ?? new OrderedForkStrategy());
+            _metricsCalculator = new MetricsCalculator(this);
         }
 
         public int PhilosopherCount => _philosopherCount;
@@ -54,7 +42,7 @@ namespace PhilosophersStepByStep
         /// </summary>
         private void InitializeTable(List<string> philosopherNames, IForkStrategy? forkStrategy = null)
         {
-            _monitor.printTableSetup(_philosopherCount);
+            _monitor.PrintTableSetup(_philosopherCount);
 
             // Create forks
             for (int i = 0; i < _philosopherCount; i++)
@@ -75,33 +63,47 @@ namespace PhilosophersStepByStep
                 var philosopher = new Philosopher(i, philosopherName, leftFork, rightFork, forkStrategy ?? new OrderedForkStrategy(), _coordinator);
                 _philosophers.Add(philosopher);
                 _coordinator?.RegisterPhilosopher(philosopher.Id);
-                _monitor.printSitBetween(philosopherName, i, PhilosopherCount);
+                _monitor.PrintSitBetween(philosopherName, i, PhilosopherCount);
             }
-            _monitor.printTableSetupComplete();
+            _monitor.PrintTableSetupComplete();
         }
 
         /// <summary>
         /// Executes one step of the simulation.
         /// </summary>
         /// <returns>True if any philosopher performed an action</returns>
-        public bool ExecuteStep()
+        public void ExecuteStep(bool printSteps = false)
         {
             _currentStep++;
-            _monitor.printCurrentStepStatus(_currentStep, _philosophers, _forks);
 
-            bool anyAction = false;
+            foreach (var fork in _forks)
+            {
+                // Checking if the philosopher is using the fork to eat
+                var isUsedToEat = fork.State == ForkState.InUse ? fork.Holder?.State == PhilosopherState.Eating : false;
+                fork.UpdateMetrics(isUsedToEat);
+            }
+
+            if(printSteps) _monitor.PrintCurrentStepStatus(_currentStep, _philosophers, _forks, _metricsCalculator);
 
             // Execute one step for each philosopher
             foreach (var philosopher in _philosophers)
             {
-                bool actionPerformed = philosopher.ExecuteStep();
-                if (actionPerformed)
-                {
-                    anyAction = true;
-                }
+                philosopher.ExecuteStep();
             }
 
-            return anyAction;
+            _metricsCalculator.UpdateMetrics();
+            if (_metricsCalculator.DetectDeadlock())
+            {
+                _monitor.PrintDeadlockDetected();
+                _monitor.PrintMetrics(_metricsCalculator._currentMetrics);
+                return;
+            }
+
+            if (_currentStep % 1000 == 0)
+            {
+                _monitor.PrintMetrics(_metricsCalculator._currentMetrics);
+                _metricsCalculator.ResetCurrentMetrics();
+            }
         }
 
         /// <summary>
@@ -137,27 +139,11 @@ namespace PhilosophersStepByStep
             return $"Step {_currentStep}: {thinkingCount} thinking, {hungryCount} hungry, {eatingCount} eating, {availableForks} forks available";
         }
 
-        public void CalculateMetrics()
+        public void PrintFinalMetrics()
         {
-            int eaten = 0;
-            int eatenPerTick = 0;
-            int sumEaten = 0;
-            int[] eatenThisStep = new int[_philosophers.Count];
-
-            // Calculate throughput
-            // количество съеденного в единицу времени, по каждому философу и среднее.
-            foreach (var phil in _philosophers)
-            {
-                eaten = phil.EatCount;
-                sumEaten += eaten;
-
-                // Доделать
-                // eatenPerTick = eaten - _eatenPrevStep[]
-            }
-
-            _avgEaten = sumEaten / _philosopherCount;
-
-
+            var metrics = _metricsCalculator._totalMetrics;
+            _monitor.PrintMetrics(metrics);
         }
+    
     }
 }

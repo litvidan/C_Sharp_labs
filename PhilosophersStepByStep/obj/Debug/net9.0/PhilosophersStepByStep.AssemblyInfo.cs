@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PhilosophersStepByStep")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0628694b3ca4e8a303c4ee127b5c8c6c11256aed")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+49abb35886f9eb51b3c5cc1be0790a822ca30e55")]
 [assembly: System.Reflection.AssemblyProductAttribute("PhilosophersStepByStep")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PhilosophersStepByStep")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
