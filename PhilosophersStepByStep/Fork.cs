@@ -1,4 +1,4 @@
-using System;
+using System.Diagnostics;
 
 namespace PhilosophersStepByStep
 {
@@ -27,6 +27,9 @@ namespace PhilosophersStepByStep
         public int TotalBlockedSteps { get; private set; }
         public int TotalAvailableSteps { get; private set; }
 
+        private readonly object _lock = new object();
+        private Stopwatch _usageTimer = new Stopwatch();
+
         public Fork(int id, IMonitor monitor)
         {
             _id = id;
@@ -51,16 +54,15 @@ namespace PhilosophersStepByStep
         /// <returns>True if fork was picked up successfully</returns>
         public bool TryPickUp(Philosopher philosopher)
         {
-            if (_state == ForkState.Available)
+            lock(_lock)
             {
-                _state = ForkState.InUse;
-                _holder = philosopher;
-                // _monitor.PrintForkPickup(picker: philosopher.Name, forkId: _id);
-                return true;
-            }
-            else
-            {
-                // _monitor.PrintForkPickupFail(picker: philosopher.Name, forkId: _id, holder: _holder?.Name ?? "NULL");
+                if(_state == ForkState.Available)
+                {
+                    _state = ForkState.InUse;
+                    _holder = philosopher;
+                    _usageTimer.Start();
+                    return true;
+                }
                 return false;
             }
         }
@@ -71,15 +73,14 @@ namespace PhilosophersStepByStep
         /// <param name="philosopherId">ID of the philosopher putting down the fork</param>
         public void PutDown(Philosopher philosopher)
         {
-            if (_holder == philosopher)
+            lock(_lock)
             {
-                _state = ForkState.Available;
-                _holder = null;
-                //_monitor.PrintForkPutdown(putter: philosopher.Name, forkId: _id); // This should be in monitor
-            }
-            else
-            {
-                //_monitor.PrintForkPutdownFail(putter: philosopher.Name, forkId: _id, holder: _holder?.Name ?? "Null");
+                if(_holder == philosopher)
+                {
+                    _state = ForkState.Available;
+                    _holder = null;
+                    _usageTimer.Stop();
+                }
             }
         }
 

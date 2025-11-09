@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "/MmY6jd8OmA=",
+  "dgSpecHash": "e9Lqwx+mswY=",
   "success": true,
-  "projectFilePath": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\Цэ Хэштег\\PhilosophersStepByStep\\PhilosophersStepByStep.csproj",
+  "projectFilePath": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\7 семестр\\Цэ Хэштег\\PhilosophersStepByStep\\PhilosophersStepByStep.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\litvidan\\.nuget\\packages\\microsoft.codeanalysis.analyzers\\3.11.0\\microsoft.codeanalysis.analyzers.3.11.0.nupkg.sha512",
     "C:\\Users\\litvidan\\.nuget\\packages\\microsoft.codeanalysis.common\\4.14.0\\microsoft.codeanalysis.common.4.14.0.nupkg.sha512",

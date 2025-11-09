@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\Цэ Хэштег\\PhilosophersStepByStep\\PhilosophersStepByStep.csproj": {}
+    "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\7 семестр\\Цэ Хэштег\\PhilosophersStepByStep\\PhilosophersStepByStep.csproj": {}
   },
   "projects": {
-    "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\Цэ Хэштег\\PhilosophersStepByStep.Strategies\\PhilosophersStepByStep.Strategies.csproj": {
+    "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\7 семестр\\Цэ Хэштег\\PhilosophersStepByStep.Strategies\\PhilosophersStepByStep.Strategies.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\Цэ Хэштег\\PhilosophersStepByStep.Strategies\\PhilosophersStepByStep.Strategies.csproj",
+        "projectUniqueName": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\7 семестр\\Цэ Хэштег\\PhilosophersStepByStep.Strategies\\PhilosophersStepByStep.Strategies.csproj",
         "projectName": "PhilosophersStepByStep.Strategies",
-        "projectPath": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\Цэ Хэштег\\PhilosophersStepByStep.Strategies\\PhilosophersStepByStep.Strategies.csproj",
+        "projectPath": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\7 семестр\\Цэ Хэштег\\PhilosophersStepByStep.Strategies\\PhilosophersStepByStep.Strategies.csproj",
         "packagesPath": "C:\\Users\\litvidan\\.nuget\\packages\\",
-        "outputPath": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\Цэ Хэштег\\PhilosophersStepByStep.Strategies\\obj\\",
+        "outputPath": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\7 семестр\\Цэ Хэштег\\PhilosophersStepByStep.Strategies\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "D:\\AppData\\NuGet\\NuGet.Config"
@@ -63,14 +63,14 @@
         }
       }
     },
-    "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\Цэ Хэштег\\PhilosophersStepByStep\\PhilosophersStepByStep.csproj": {
+    "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\7 семестр\\Цэ Хэштег\\PhilosophersStepByStep\\PhilosophersStepByStep.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\Цэ Хэштег\\PhilosophersStepByStep\\PhilosophersStepByStep.csproj",
+        "projectUniqueName": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\7 семестр\\Цэ Хэштег\\PhilosophersStepByStep\\PhilosophersStepByStep.csproj",
         "projectName": "PhilosophersStepByStep",
-        "projectPath": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\Цэ Хэштег\\PhilosophersStepByStep\\PhilosophersStepByStep.csproj",
+        "projectPath": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\7 семестр\\Цэ Хэштег\\PhilosophersStepByStep\\PhilosophersStepByStep.csproj",
         "packagesPath": "C:\\Users\\litvidan\\.nuget\\packages\\",
-        "outputPath": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\Цэ Хэштег\\PhilosophersStepByStep\\obj\\",
+        "outputPath": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\7 семестр\\Цэ Хэштег\\PhilosophersStepByStep\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "D:\\AppData\\NuGet\\NuGet.Config"
@@ -85,8 +85,8 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\Цэ Хэштег\\PhilosophersStepByStep.Strategies\\PhilosophersStepByStep.Strategies.csproj": {
-                "projectPath": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\Цэ Хэштег\\PhilosophersStepByStep.Strategies\\PhilosophersStepByStep.Strategies.csproj"
+              "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\7 семестр\\Цэ Хэштег\\PhilosophersStepByStep.Strategies\\PhilosophersStepByStep.Strategies.csproj": {
+                "projectPath": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\7 семестр\\Цэ Хэштег\\PhilosophersStepByStep.Strategies\\PhilosophersStepByStep.Strategies.csproj"
               }
             }
           }

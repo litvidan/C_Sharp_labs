@@ -7,6 +7,7 @@ namespace PhilosophersStepByStep
         public bool UseCoordinator { get; set; } = false;
         public string? NamesFilePath { get; set; }
         public List<string> PhilosopherNames { get; set; } = new();
+        public int SimulationDuration { get; set; } = 10000;
 
         /// <summary>
         /// Load config from file
@@ -43,6 +44,10 @@ namespace PhilosophersStepByStep
                             break;
                         case "namesfilepath":
                             config.NamesFilePath = value;
+                            break;
+                        case "simulationduration":
+                            if (int.TryParse(value, out var sd))
+                                config.SimulationDuration = sd;
                             break;
                     }
                 }
