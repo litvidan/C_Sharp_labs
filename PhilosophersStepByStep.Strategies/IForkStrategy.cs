@@ -12,7 +12,7 @@ namespace PhilosophersStepByStep.Strategies
         /// <param name="leftFork">Left fork available to the philosopher</param>
         /// <param name="rightFork">Right fork available to the philosopher</param>
         /// <returns>The fork to try to acquire first</returns>
-        object GetFirstFork(int philosopherId, object leftFork, object rightFork);
+        object GetFirstFork(int philosopherId, object leftFork, object rightFork, bool isLeftBlocked, bool isRightBlocked);
 
         /// <summary>
         /// Determines which fork to try to acquire second for a given philosopher.

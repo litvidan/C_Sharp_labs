@@ -27,14 +27,16 @@ namespace PhilosophersStepByStep
                 monitor.PrintInitialConfiguration(config.PhilosopherCount, config.Mode, config.NamesFilePath);
 
                 // Start simulation
-                var table = new Table(monitor, config, new DeadlockForkStrategy());
+                var table = new Table(monitor, config, new OrderedForkStrategy());
                 var cts = new CancellationTokenSource();
 
-                List<Task> philosopherTasks = new List<Task>();
+                List<Thread> philosopherThreads = new List<Thread>();
 
                 foreach (var philosopher in table.Philosophers)
                 {
-                    philosopherTasks.Add(Task.Run(() => philosopher.Run(cts.Token)));
+                    Thread thread = new Thread(() => philosopher.Run(cts.Token));
+                    philosopherThreads.Add(thread);
+                    thread.Start();
                 }
 
                 var stopwatch = Stopwatch.StartNew();
@@ -42,11 +44,14 @@ namespace PhilosophersStepByStep
                 while (stopwatch.ElapsedMilliseconds < config.SimulationDuration)
                 {
                     monitor.PrintSimStatus(table.GetSimulationSummary());
-                    Thread.Sleep(150); // Delay for a while before the next status update
+                    Thread.Sleep(150);
                 }
 
                 cts.Cancel();
-                Task.WaitAll(philosopherTasks.ToArray());
+                foreach (var thread in philosopherThreads)
+                {
+                    thread.Join();
+                }
                 table.PrintFinalMetrics();
             }
             catch (Exception ex)

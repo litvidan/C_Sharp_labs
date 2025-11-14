@@ -9,17 +9,23 @@ namespace PhilosophersStepByStep.Coordinators
         private readonly HashSet<int> _registeredPhilosophers = new();
         private readonly HashSet<int> _registeredForks = new();
 
-        // Какие вилки сейчас заняты (forkId -> philosopherId)
+        // Tracks which fork is currently held by which philosopher (forkId -> philosopherId)
         private readonly Dictionary<int, int> _forkHolders = new();
 
-        // Состояние ожидания философов (philosopherId -> ждёт разрешения)
+        // Philosophers currently waiting for forks
         private readonly HashSet<int> _waitingPhilosophers = new();
+        
+        // Count of how many times each philosopher has eaten
+        private readonly Dictionary<int, int> _eatCounts = new();
 
-        public event EventHandler<ForkAvailableEventArgs>? ForkAvailable;
+        // Event raised when a philosopher can pick up a fork
+        public event EventHandler<ForkEventArgs>? PickFork;
 
         public void RegisterPhilosopher(int philosopherId)
         {
             _registeredPhilosophers.Add(philosopherId);
+            if (!_eatCounts.ContainsKey(philosopherId))
+                _eatCounts[philosopherId] = 0;
         }
 
         public void RegisterFork(int forkId)
@@ -29,80 +35,82 @@ namespace PhilosophersStepByStep.Coordinators
 
         public void RequestToEat(int philosopherId)
         {
-            if (!_registeredPhilosophers.Contains(philosopherId))
-                throw new InvalidOperationException("Philosopher not registered.");
-
-            // Философ хочет поесть - добавим в ожидание
             _waitingPhilosophers.Add(philosopherId);
-
-            // Попробуем выдать вилки, если они свободны
             TryGrantForks(philosopherId);
         }
 
         public void ReleaseForks(int philosopherId)
         {
-            // Убираем философа из ожидания (на всякий случай)
+            // Remove philosopher from waiting set
             _waitingPhilosophers.Remove(philosopherId);
 
-            // Освобождаем вилки, которые философ держит
+            // Collect forks that philosopher holds
             var forksToRelease = new List<int>();
-            foreach (var kvp in _forkHolders)
+            foreach (var holder in _forkHolders)
             {
-                if (kvp.Value == philosopherId)
-                    forksToRelease.Add(kvp.Key);
+                if (holder.Value == philosopherId)
+                    forksToRelease.Add(holder.Key);
             }
+
+            // Release forks
             foreach (var forkId in forksToRelease)
             {
                 _forkHolders.Remove(forkId);
             }
 
-            // После освобождения вилок попробуем дать их другим философам
-            foreach (var waitingPhilosopher in _waitingPhilosophers)
+            // Increase eat count for philosopher who finished eating
+            if (_eatCounts.ContainsKey(philosopherId))
+                _eatCounts[philosopherId]++;
+
+            // Try to grant forks to other waiting philosophers
+            foreach (var waitingPhilosopher in _waitingPhilosophers.ToList())
             {
                 TryGrantForks(waitingPhilosopher);
             }
+            DetectDeadlock();
         }
 
         private void TryGrantForks(int philosopherId)
         {
-            // Соседние вилки философа: левую - philosopherId, правую - (philosopherId + 1) % count
+            // Get the minimum eat count among all philosophers
+            int minEatCount = _eatCounts.Values.Min();
+
+            // If this philosopher ate more times than current minimum, do not grant forks
+            if (_eatCounts[philosopherId] > minEatCount)
+            {
+                return;
+            }
 
             int leftFork = philosopherId;
             int rightFork = (philosopherId + 1) % _registeredPhilosophers.Count;
 
-            // Проверяем, свободны ли вилки
+            // Check if both forks are free
             bool leftFree = !_forkHolders.ContainsKey(leftFork);
             bool rightFree = !_forkHolders.ContainsKey(rightFork);
 
             if (leftFree && rightFree)
             {
-                // Выдаем вилки философу
+                // Assign forks to philosopher
                 _forkHolders[leftFork] = philosopherId;
                 _forkHolders[rightFork] = philosopherId;
 
-                // Убираем философа из очереди ожидания
+                // Remove philosopher from waiting set
                 _waitingPhilosophers.Remove(philosopherId);
 
-                // Опускаем события для обеих вилок
-                ForkAvailable?.Invoke(this, new ForkAvailableEventArgs(philosopherId, leftFork));
-                ForkAvailable?.Invoke(this, new ForkAvailableEventArgs(philosopherId, rightFork));
+                // Raise PickFork event for both forks
+                PickFork?.Invoke(this, new ForkEventArgs(philosopherId, leftFork));
+                PickFork?.Invoke(this, new ForkEventArgs(philosopherId, rightFork));
             }
-            // Если невозможно, ничего не делаем (философ ждет)
         }
 
         public bool DetectDeadlock()
         {
-            // Простой дедлок: все философы в ожидании, но вилки никому не выдаются
-            // Если есть философы, которые хотят есть, и все вилки заняты, дедлок
-
+            // Deadlock occurs if all philosophers are waiting and all forks are held
             if (_waitingPhilosophers.Count == 0)
                 return false;
 
-            // Если количество занятых вилок = количество вилок (все заняты)
             if (_forkHolders.Count == _registeredForks.Count)
-            {
                 return true;
-            }
 
             return false;
         }

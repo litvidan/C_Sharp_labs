@@ -15,6 +15,20 @@ namespace PhilosophersStepByStep
         Eating
     }
 
+    public class PhilosopherStateChangeEventArgs : EventArgs
+    {
+        public PhilosopherState PreviousState { get; }
+        public PhilosopherState CurrentState { get; }
+        public DateTime Timestamp { get; }
+
+        public PhilosopherStateChangeEventArgs(PhilosopherState previousState, PhilosopherState currentState, DateTime timestamp)
+        {
+            PreviousState = previousState;
+            CurrentState = currentState;
+            Timestamp = timestamp;
+        }
+    }
+
     /// <summary>
     /// Represents a philosopher who alternates between thinking and eating.
     /// Single-threaded step-by-step simulation with discrete time steps.
@@ -29,10 +43,12 @@ namespace PhilosophersStepByStep
         private readonly IForkStrategy _forkStrategy;
 
         private PhilosopherState _state;
-        private int _remainingTime; // Steps remaining in current state
         private Fork? _heldFork1;
         private Fork? _heldFork2;
         private int _attemptsToGetSecondFork; // Count attempts to get second fork
+
+        public delegate void PhilosopherStateChangedHandler(object sender, PhilosopherStateChangeEventArgs e);
+        public event PhilosopherStateChangedHandler? StateChanged;
 
         public Philosopher(int id, string name, Fork leftFork, Fork rightFork, IForkStrategy forkStrategy)
         {
@@ -42,8 +58,7 @@ namespace PhilosophersStepByStep
             _rightFork = rightFork;
             _forkStrategy = forkStrategy ?? throw new ArgumentNullException(nameof(forkStrategy));
             _random = new Random();
-            _state = PhilosopherState.Thinking;
-            _remainingTime = 0;
+            State = PhilosopherState.Thinking;
             _heldFork1 = null;
             _heldFork2 = null;
             _attemptsToGetSecondFork = 0;
@@ -51,10 +66,21 @@ namespace PhilosophersStepByStep
 
         public int Id => _id;
         public string Name => _name;
-        public PhilosopherState State => _state;
-        public int RemainingTime => _remainingTime;
         public Fork? HeldFork1 => _heldFork1;
         public Fork? HeldFork2 => _heldFork2;
+        public PhilosopherState State
+        {
+            get => _state;
+            set
+            {
+                if(_state != value)
+                {
+                    var oldState = _state;
+                    _state = value;
+                    StateChanged?.Invoke(this, new PhilosopherStateChangeEventArgs(oldState, value, DateTime.UtcNow));
+                }
+            }
+        }
 
         /// <summary>
         /// Runs the philosopher's lifecycle in a loop until cancellation is requested.
@@ -68,16 +94,16 @@ namespace PhilosophersStepByStep
             {
                 // Thinking
                 int thinkingTime = _random.Next(30, 100); // Thinking time between 30 and 100 ms
-                _state = PhilosopherState.Thinking;
+                State = PhilosopherState.Thinking;
                 Thread.Sleep(thinkingTime);
 
                 // Hungry
-                _state = PhilosopherState.Hungry;
+                State = PhilosopherState.Hungry;
                 TryAcquireForks();
 
                 // Eating  
                 int eatingTime = _random.Next(40, 50); // Eating time between 40 and 50 ms
-                _state = PhilosopherState.Eating;
+                State = PhilosopherState.Eating;
                 Thread.Sleep(eatingTime);
 
                 ReleaseForks();
@@ -167,8 +193,7 @@ namespace PhilosophersStepByStep
                 _heldFork2 = null;
             }
 
-            _state = PhilosopherState.Thinking;
-            _remainingTime = 0;
+            State = PhilosopherState.Thinking;
             _attemptsToGetSecondFork = 0;
         }
     }

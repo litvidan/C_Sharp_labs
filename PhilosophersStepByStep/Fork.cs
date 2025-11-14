@@ -11,6 +11,20 @@ namespace PhilosophersStepByStep
         InUse
     }
 
+    public class ForkStateChangeEventArgs : EventArgs
+    {
+        public ForkState PreviousState { get; }
+        public ForkState CurrentState { get; }
+        public DateTime Timestamp { get; }
+
+        public ForkStateChangeEventArgs(ForkState previousState, ForkState currentState, DateTime timestamp)
+        {
+            PreviousState = previousState;
+            CurrentState = currentState;
+            Timestamp = timestamp;
+        }
+    }
+
 
     /// <summary>
     /// Represents a fork that philosophers can pick up and put down.
@@ -23,12 +37,10 @@ namespace PhilosophersStepByStep
         private Philosopher? _holder;
         private readonly IMonitor _monitor;
 
-        public int TotalUsedSteps { get; private set; }
-        public int TotalBlockedSteps { get; private set; }
-        public int TotalAvailableSteps { get; private set; }
-
         private readonly object _lock = new object();
         private Stopwatch _usageTimer = new Stopwatch();
+        public delegate void ForkStateChangedHandler(object sender, ForkStateChangeEventArgs e);
+        public event ForkStateChangedHandler? StateChanged;
 
         public Fork(int id, IMonitor monitor)
         {
@@ -36,15 +48,23 @@ namespace PhilosophersStepByStep
             _state = ForkState.Available;
             _holder = null;
             _monitor = monitor;
-
-            TotalUsedSteps = 0;
-            TotalBlockedSteps = 0;
-            TotalAvailableSteps = 0;
         }
 
         public int Id => _id;
-        public ForkState State => _state;
-        public bool IsAvailable => _state == ForkState.Available;
+        public ForkState State
+        {
+            get => _state;
+            set
+            {
+                if(_state != value)
+                {
+                    var oldState = _state;
+                    _state = value;
+                    StateChanged?.Invoke(this, new ForkStateChangeEventArgs(oldState, value, DateTime.UtcNow));
+                }
+            }   
+        }
+        public bool IsAvailable => State == ForkState.Available;
         public Philosopher? Holder => _holder;
 
         /// <summary>
@@ -56,9 +76,9 @@ namespace PhilosophersStepByStep
         {
             lock(_lock)
             {
-                if(_state == ForkState.Available)
+                if(State == ForkState.Available)
                 {
-                    _state = ForkState.InUse;
+                    State = ForkState.InUse;
                     _holder = philosopher;
                     _usageTimer.Start();
                     return true;
@@ -77,7 +97,7 @@ namespace PhilosophersStepByStep
             {
                 if(_holder == philosopher)
                 {
-                    _state = ForkState.Available;
+                    State = ForkState.Available;
                     _holder = null;
                     _usageTimer.Stop();
                 }
@@ -89,17 +109,17 @@ namespace PhilosophersStepByStep
         /// </summary>
         public void ForceRelease()
         {
-            if (_state == ForkState.InUse)
+            if (State == ForkState.InUse)
             {
                 //_monitor.PrintForkForceRelease(forkId: _id, holder: _holder?.Name ?? "Null");
             }
-            _state = ForkState.Available;
+            State = ForkState.Available;
             _holder = null;
         }
 
         public string GetStatusDescription()
         {
-            switch (_state)
+            switch (State)
             {
                 case ForkState.Available:
                     return "Available";
@@ -110,20 +130,5 @@ namespace PhilosophersStepByStep
             }
         }
 
-        public void UpdateMetrics(bool philosoperEating)
-        {
-            if (_state == ForkState.Available)
-            {
-                TotalAvailableSteps++;
-            }
-            else if (_state == ForkState.InUse && philosoperEating)
-            {
-                TotalUsedSteps++;
-            }
-            else if (_state == ForkState.InUse && !philosoperEating)
-            {
-                TotalBlockedSteps++;
-            }
-        }
     }
 }

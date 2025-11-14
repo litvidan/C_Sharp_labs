@@ -79,18 +79,7 @@ namespace PhilosophersStepByStep
         }
         public void PrintCurrentStepStatus(int step, List<Philosopher> philosophers, List<Fork> forks, MetricsCalculator metricsCalculator)
         {
-            Console.WriteLine($"\n===== STEP {step} =====\n");
-            Console.WriteLine("\nPhilosophers: \n");
-            foreach (var philosopher in philosophers)
-            {
-                string status = GetPhilosopherStatusDescription(philosopher);
-                Console.WriteLine($"\t{philosopher.Name}: {status} (Eaten: {metricsCalculator._currentMetrics.PhilosopherEatCounts[philosopher.Name]}, Thought: {metricsCalculator._currentMetrics.PhilosopherThoughtCounts[philosopher.Name]})");
-            }
-            Console.WriteLine("\nForks:");
-            foreach (var fork in forks)
-            {
-                Console.WriteLine($"\tFork {fork.Id}: {fork.GetStatusDescription()}");
-            }
+            // This is stepless version
         }
 
         public void PrintNamesLoadingSuccess(int philosopherCount, string fileName)
@@ -146,14 +135,16 @@ namespace PhilosophersStepByStep
             switch (philosopher.State)
             {
                 case PhilosopherState.Thinking:
-                    return $"Thinking ({philosopher.RemainingTime} steps left)";
+                    return "Thinking";
+                    //return $"Thinking ({philosopher.RemainingTime} steps left)";
                 case PhilosopherState.Hungry:
                     if (philosopher.HeldFork1 == null)
                         return "Hungry (trying to get first fork)";
                     else
                         return $"Hungry (holding one fork, trying to get second fork)";
                 case PhilosopherState.Eating:
-                    return $"Eating ({philosopher.RemainingTime} steps left)";
+                    return "Eating";
+                    //return $"Eating ({philosopher.RemainingTime} steps left)";
                 default:
                     return "Unknown state";
             }
@@ -162,35 +153,31 @@ namespace PhilosophersStepByStep
         public void PrintMetrics(SimulationMetrics metrics)
         {
             Console.WriteLine("\n" + new string('=', 50));
-            Console.WriteLine($"METRICS (Last {metrics.Steps} steps)");
+            Console.WriteLine($"METRICS (Simulation duration: {metrics.duration.ElapsedMilliseconds} ms)");
             Console.WriteLine(new string('=', 50));
 
-            // Throughput
-            Console.WriteLine("THROUGHPUT");
-            var coeff = 1000.0 / metrics.Steps;
-            foreach (var eaten in metrics.PhilosopherEatCounts)
+            // Throughput (meals per millisecond)
+            Console.WriteLine("THROUGHPUT (meals/ms):");
+            foreach (var eaten in metrics.PhilosopherEatThroughput)
             {
-                Console.WriteLine($"  {eaten.Key}: {eaten.Value * coeff:F2} meals/1000 steps");
+                Console.WriteLine($"  {eaten.Key}: {eaten.Value:F5} meals/ms");
             }
-            Console.WriteLine($"Average Throughput: {metrics.AverageEaten * coeff:F2} meals/1000 steps");
+            Console.WriteLine($"Average Throughput: {metrics.AverageEatThroughput:F5} meals/ms");
 
-            // Waiting time
-            Console.WriteLine("WAITING TIME");
-            foreach (var hungry in metrics.PhilosopherHungryCounts)
+            // Waiting time (hungry time, ms)
+            Console.WriteLine("\nWAITING TIME (ms):");
+            foreach (var philosopher in metrics.PhilosopherHungryDuration)
             {
-                Console.WriteLine($"  {hungry.Key}: {hungry.Value:F2} hungry/{metrics.Steps} steps");
+                Console.WriteLine($"  {philosopher.Key}: {philosopher.Value} ms hungry");
             }
-            Console.WriteLine($"Average Hungry: {metrics.AverageHungry:F2} hungry/1000 steps");
+            Console.WriteLine($"Average Hungry Time: {metrics.AverageHungryTimeMs:F2} ms");
+            Console.WriteLine($"Max Hungry Time: {metrics.MaxHungryTimeMs:F2} ms (Philosopher: {metrics.MaxHungryPhilosopher})");
 
-            var maxHungry = metrics.PhilosopherMaxHungryCounts.MaxBy(kvp => kvp.Value);
-            if(maxHungry.Value != 0) Console.WriteLine($"Max Hungry: {maxHungry.Key}  {maxHungry.Value} hungry/{metrics.Steps} steps");
-
-            // Utilization coefficient
-            Console.WriteLine("FORK UTILIZATION");
-            foreach (var fork in metrics.ForkMetrics)
+            // Fork utilization (% of time in use)
+            Console.WriteLine("\nFORK UTILIZATION (%):");
+            foreach (var forkUtil in metrics.ForkUtilizationPercent)
             {
-                var utilization = (fork.Value.InUseCounts / (double)metrics.Steps) * 100;
-                Console.WriteLine($"  Fork {fork.Key}: {utilization:F2}% utilized");
+                Console.WriteLine($"  Fork {forkUtil.Key}: {forkUtil.Value:F2}% utilized");
             }
         }
     }

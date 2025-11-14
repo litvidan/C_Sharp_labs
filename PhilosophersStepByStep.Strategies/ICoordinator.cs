@@ -2,8 +2,20 @@ using System;
 
 namespace PhilosophersStepByStep.Strategies
 {
+    public class ForkEventArgs : EventArgs
+    {
+        public int PhilosopherId { get; }
+        public int ForkId { get; }
+
+        public ForkEventArgs(int philosopherId, int forkId)
+        {
+            PhilosopherId = philosopherId;
+            ForkId = forkId;
+        }
+    }
     public interface ICoordinator
     {
+        public event EventHandler<ForkEventArgs>? PickFork;
         /// <summary>
         /// Регистрирует философа, чтобы координатор его отслеживал.
         /// </summary>
@@ -32,7 +44,6 @@ namespace PhilosophersStepByStep.Strategies
         /// Событие, которое координатор вызывает, когда философу можно взять вилку.
         /// Аргументом передается идентификатор философа и вилки.
         /// </summary>
-        event EventHandler<ForkAvailableEventArgs> ForkAvailable;
 
         /// <summary>
         /// Проверка, обнаружен ли дедлок.
@@ -41,15 +52,4 @@ namespace PhilosophersStepByStep.Strategies
         bool DetectDeadlock();
     }
 
-    public class ForkAvailableEventArgs : EventArgs
-    {
-        public int PhilosopherId { get; }
-        public int ForkId { get; }
-
-        public ForkAvailableEventArgs(int philosopherId, int forkId)
-        {
-            PhilosopherId = philosopherId;
-            ForkId = forkId;
-        }
-    }
 }

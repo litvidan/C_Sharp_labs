@@ -1,152 +1,135 @@
+using System.Diagnostics;
+
 namespace PhilosophersStepByStep
 {
+    /// <summary>
+    /// Calculates and accumulates simulation metrics for the philosophers and forks.  
+    /// Subscribes to state changes and records events for further statistical analysis.
+    /// </summary>
     public class MetricsCalculator
     {
         private readonly Table _table;
 
-        public SimulationMetrics _totalMetrics; // Total metrics across all steps
-        public SimulationMetrics _currentMetrics; // Current metrics for the ongoing period
+        public SimulationMetrics _totalMetrics;
 
+        private DateTime simulationStartTime;
 
+        /// <summary>
+        /// Initializes a new instance of the MetricsCalculator class.
+        /// Sets up tracking for all philosophers and forks on the table and subscribes to their state changes.
+        /// </summary>
+        /// <param name="table">Table instance containing philosophers and forks.</param>
         public MetricsCalculator(Table table)
         {
             _table = table;
-
-            // Initialization of metrics
             _totalMetrics = new SimulationMetrics();
-            _currentMetrics = new SimulationMetrics();
+
+            simulationStartTime = DateTime.UtcNow;
+
             foreach (var philosopher in table.Philosophers)
             {
-                _currentMetrics.PhilosopherEatCounts[philosopher.Name] = 0;
-                _currentMetrics.PhilosopherHungryCounts[philosopher.Name] = 0;
-                _currentMetrics.PhilosopherThoughtCounts[philosopher.Name] = 0;
-                _currentMetrics.PhilosopherStreakHungryCounts[philosopher.Name] = 0;
-                _currentMetrics.PhilosopherMaxHungryCounts[philosopher.Name] = 0;
-                _totalMetrics.PhilosopherEatCounts[philosopher.Name] = 0;
-                _totalMetrics.PhilosopherHungryCounts[philosopher.Name] = 0;
-                _totalMetrics.PhilosopherThoughtCounts[philosopher.Name] = 0;
-                _totalMetrics.PhilosopherStreakHungryCounts[philosopher.Name] = 0;
-                _totalMetrics.PhilosopherMaxHungryCounts[philosopher.Name] = 0;
+                _totalMetrics.PhilosopherEatDuration[philosopher.Name] = 0;
+                _totalMetrics.PhilosopherHungryDuration[philosopher.Name] = 0;
+
+                _totalMetrics.philosopherStateStartTimes[philosopher.Name] = DateTime.UtcNow;
+                _totalMetrics.PhilosopherHungryDuration[philosopher.Name] = 0;
+
+                philosopher.StateChanged += Philosopher_StateChanged;
             }
 
             foreach (var fork in _table.Forks)
             {
-                _currentMetrics.ForkMetrics[fork.Id] = new ForkMetrics
-                {
-                    InUseCounts = 0,
-                    BlockedCounts = 0,
-                    AvailableCounts = 0
-                };
-                _totalMetrics.ForkMetrics[fork.Id] = new ForkMetrics
-                {
-                    InUseCounts = 0,
-                    BlockedCounts = 0,
-                    AvailableCounts = 0
-                };
+                _totalMetrics.forkStateStartTimes[fork.Id] = DateTime.UtcNow;
+                _totalMetrics.forkInUseDurationMs[fork.Id] = 0;
+
+                fork.StateChanged += Fork_StateChanged;
             }
-
-
         }
 
-        public void UpdateMetrics()
+        /// <summary>
+        /// Handles philosopher state change events.
+        /// Updates metrics such as hungry and eating durations based on state transitions.
+        /// </summary>
+        private void Philosopher_StateChanged(object sender, PhilosopherStateChangeEventArgs e)
         {
-            _totalMetrics.Steps++;
-            _currentMetrics.Steps++;
+            var philosopherStateStartTimes = _totalMetrics.philosopherStateStartTimes;
+            var philosopher = (Philosopher)sender;
+            if (!philosopherStateStartTimes.ContainsKey(philosopher.Name))
+                philosopherStateStartTimes[philosopher.Name] = e.Timestamp;
 
-            var totalEatenSum = 0.0;
-            var currentEatenSum = 0.0;
-            var totalHungrySum = 0.0;
-            var currentHungrySum = 0.0;
+            var duration = (e.Timestamp - philosopherStateStartTimes[philosopher.Name]).TotalMilliseconds;
+
+            if (e.PreviousState == PhilosopherState.Hungry)
+            {
+                _totalMetrics.PhilosopherHungryDuration[philosopher.Name] += (long)duration;
+                _totalMetrics.PhilosopherHungryDuration[philosopher.Name] += (long)duration;
+            }
+
+            if (e.PreviousState == PhilosopherState.Eating)
+            {
+                _totalMetrics.PhilosopherEatDuration[philosopher.Name] += (long)duration;
+            }
+
+            _totalMetrics.philosopherStateStartTimes[philosopher.Name] = e.Timestamp;
+        }
+
+        /// <summary>
+        /// Handles fork state change events.
+        /// Tracks and accumulates fork usage durations when the state changes to or from InUse.
+        /// </summary>
+        private void Fork_StateChanged(object sender, ForkStateChangeEventArgs e)
+        {
+            var fork = (Fork)sender;
+            if (!_totalMetrics.forkStateStartTimes.ContainsKey(fork.Id))
+                _totalMetrics.forkStateStartTimes[fork.Id] = e.Timestamp;
+
+            var duration = (e.Timestamp - _totalMetrics.forkStateStartTimes[fork.Id]).TotalMilliseconds;
+
+            switch (e.PreviousState)
+            {
+                case ForkState.InUse:
+                    _totalMetrics.forkInUseDurationMs[fork.Id] += (long)duration;
+                    break;
+            }
+
+            _totalMetrics.forkStateStartTimes[fork.Id] = e.Timestamp;
+        }
+
+        /// <summary>
+        /// Calculates and finalizes all simulation metrics.
+        /// Computes average eating throughput, average hungry time, max hungry time, and fork utilization.
+        /// </summary>
+        public void CalculateFinalMetrics()
+        {
+            var totalSimulationTimeMs = (DateTime.UtcNow - simulationStartTime).TotalMilliseconds;
+
             foreach (var philosopher in _table.Philosophers)
             {
-                // Update philosopher eat counts
-                if (philosopher.State == PhilosopherState.Eating)
-                {
-                    _totalMetrics.PhilosopherEatCounts[philosopher.Name] += 1;
-                    // Check if we updating max hungry streak
-                    var totalPreviousMaxHungry = _totalMetrics.PhilosopherMaxHungryCounts[philosopher.Name];
-                    var totalStreakHungry = _totalMetrics.PhilosopherStreakHungryCounts[philosopher.Name];
-                    _totalMetrics.PhilosopherMaxHungryCounts[philosopher.Name] = Math.Max(totalPreviousMaxHungry, totalStreakHungry);
-                    _totalMetrics.PhilosopherStreakHungryCounts[philosopher.Name] = 0;
-
-                    // Same actions with current metrics
-                    _currentMetrics.PhilosopherEatCounts[philosopher.Name] += 1;
-                    var currentPreviousMaxHungry = _currentMetrics.PhilosopherMaxHungryCounts[philosopher.Name];
-                    var currentStreakHungry = _currentMetrics.PhilosopherStreakHungryCounts[philosopher.Name];
-                    _currentMetrics.PhilosopherMaxHungryCounts[philosopher.Name] = Math.Max(currentPreviousMaxHungry, currentStreakHungry);
-                    _currentMetrics.PhilosopherStreakHungryCounts[philosopher.Name] = 0;
-                }
-                totalEatenSum += _totalMetrics.PhilosopherEatCounts[philosopher.Name];
-                currentEatenSum += _currentMetrics.PhilosopherEatCounts[philosopher.Name];
-
-
-                if (philosopher.State == PhilosopherState.Hungry)
-                {
-                    _totalMetrics.PhilosopherHungryCounts[philosopher.Name]++;
-                    _totalMetrics.PhilosopherStreakHungryCounts[philosopher.Name]++;
-
-                    _currentMetrics.PhilosopherHungryCounts[philosopher.Name]++;
-                    _currentMetrics.PhilosopherStreakHungryCounts[philosopher.Name]++;
-                }
-                totalHungrySum += _totalMetrics.PhilosopherHungryCounts[philosopher.Name];
-                currentHungrySum += _currentMetrics.PhilosopherHungryCounts[philosopher.Name];
+                var eatDuration = _totalMetrics.PhilosopherEatDuration[philosopher.Name];
+                _totalMetrics.PhilosopherEatThroughput[philosopher.Name] = (double)eatDuration / totalSimulationTimeMs;
             }
-            _totalMetrics.AverageEaten = totalEatenSum / _table.Philosophers.Count;
-            _currentMetrics.AverageEaten = currentEatenSum / _table.Philosophers.Count;
+            _totalMetrics.AverageEatThroughput = _totalMetrics.PhilosopherEatThroughput.Values.Average();
 
-            _totalMetrics.AverageHungry = totalHungrySum / _table.Philosophers.Count;
-            _currentMetrics.AverageHungry = currentHungrySum / _table.Philosophers.Count;
+            double totalHungryTime = _totalMetrics.PhilosopherHungryDuration.Values.Sum();
+            _totalMetrics.AverageHungryTimeMs = totalHungryTime / _table.Philosophers.Count;
 
-            // Update forks utilization
+            var maxHungry = _totalMetrics.PhilosopherHungryDuration.OrderByDescending(kvp => kvp.Value).First();
+            _totalMetrics.MaxHungryTimeMs = maxHungry.Value;
+            _totalMetrics.MaxHungryPhilosopher = maxHungry.Key;
+
             foreach (var fork in _table.Forks)
             {
-                switch (fork.State)
-                {
-                    case ForkState.Available:
-                        _currentMetrics.ForkMetrics[fork.Id].AvailableCounts++;
-                        _totalMetrics.ForkMetrics[fork.Id].AvailableCounts++;
-                        break;
-                    case ForkState.InUse:
-                        // Check if fork holder uses it
-                        var holder = _table.Philosophers.FirstOrDefault(p => p.HeldFork1 == fork || p.HeldFork2 == fork);
-                        if (holder != null && holder.State == PhilosopherState.Eating)
-                        {
-                            _currentMetrics.ForkMetrics[fork.Id].InUseCounts++;
-                            _totalMetrics.ForkMetrics[fork.Id].InUseCounts++;
-                        }
-                        else
-                        {
-                            _currentMetrics.ForkMetrics[fork.Id].BlockedCounts++;
-                            _totalMetrics.ForkMetrics[fork.Id].BlockedCounts++;
-                        }
-                        break;
-                }
+                long inUseTime = _totalMetrics.forkInUseDurationMs[fork.Id];
+                double utilization = 100.0 * inUseTime / totalSimulationTimeMs;
+                _totalMetrics.ForkUtilizationPercent[fork.Id] = utilization;
             }
         }
 
-        public void ResetCurrentMetrics()
-        {
-            _currentMetrics = new SimulationMetrics();
-            foreach (var philosopher in _table.Philosophers)
-            {
-                _currentMetrics.PhilosopherEatCounts[philosopher.Name] = 0;
-                _currentMetrics.PhilosopherHungryCounts[philosopher.Name] = 0;
-                _currentMetrics.PhilosopherThoughtCounts[philosopher.Name] = 0;
-                _currentMetrics.PhilosopherStreakHungryCounts[philosopher.Name] = 0;
-                _currentMetrics.PhilosopherMaxHungryCounts[philosopher.Name] = 0;
-            }
-            foreach (var fork in _table.Forks)
-            {
-                _currentMetrics.ForkMetrics[fork.Id] = new ForkMetrics
-                {
-                    InUseCounts = 0,
-                    BlockedCounts = 0,
-                    AvailableCounts = 0
-                };
-            }
-
-        }
-
+        /// <summary>
+        /// Detects deadlock state in the current simulation.
+        /// Returns true if all philosophers are hungry and each is holding a fork.
+        /// </summary>
+        /// <returns>True if a deadlock is detected, otherwise false.</returns>
         public bool DetectDeadlock()
         {
             // Simple deadlock detection: if all philosophers are hungry and holding one fork, it's a deadlock
@@ -154,23 +137,27 @@ namespace PhilosophersStepByStep
         }
     }
     
+    /// <summary>
+    /// Stores simulation metrics for philosophers and forks, as well as aggregate statistics.
+    /// </summary>
     public class SimulationMetrics
     {
-        public int Steps { get; set; } = 0;
-        public Dictionary<string, int> PhilosopherEatCounts { get; set; } = new(); // Total eat counts per philosopher
-        public Dictionary<string, int> PhilosopherHungryCounts { get; set; } = new(); // Total hungry counts per philosopher
-        public Dictionary<string, int> PhilosopherThoughtCounts { get; set; } = new(); // Total thought counts per philosopher
-        public Dictionary<string, int> PhilosopherStreakHungryCounts { get; set; } = new(); // Max hungry streak per philosopher
-        public Dictionary<string, int> PhilosopherMaxHungryCounts { get; set; } = new(); // Max hungry streak per philosopher
-        public double AverageEaten { get; set; } = 0.0;
-        public double AverageHungry { get; set; } = 0.0;
-        public Dictionary<int, ForkMetrics> ForkMetrics { get; set; } = new();
+        public Stopwatch duration { get; set; } = Stopwatch.StartNew();
+
+
+        public Dictionary<string, DateTime> philosopherStateStartTimes = new();
+        public Dictionary<string, long> PhilosopherEatDuration { get; set; } = new();
+        public Dictionary<string, long> PhilosopherHungryDuration { get; set; } = new();
+        public Dictionary<string, double> PhilosopherEatThroughput { get; set; } = new();
+
+        public double AverageEatThroughput { get; set; } = 0.0;
+        public double AverageHungryTimeMs { get; set; } = 0.0;
+        public double MaxHungryTimeMs { get; set; } = 0.0;
+        public string MaxHungryPhilosopher { get; set; } = "";
+
+        public Dictionary<int, long> forkInUseDurationMs = new();
+        public Dictionary<int, DateTime> forkStateStartTimes = new();
+        public Dictionary<int, double> ForkUtilizationPercent { get; set; } = new();
     }
 
-    public class ForkMetrics
-    {
-        public int InUseCounts { get; set; }
-        public int AvailableCounts { get; set; }
-        public int BlockedCounts { get; set; }
-    }
 }

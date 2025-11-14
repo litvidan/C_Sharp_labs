@@ -12,7 +12,6 @@ namespace PhilosophersStepByStep
         private readonly List<Philosopher> _philosophers;
         private readonly List<Fork> _forks;
         private readonly int _philosopherCount;
-        private int _currentStep;
         private readonly MetricsCalculator _metricsCalculator;
 
         private readonly IMonitor _monitor;
@@ -26,7 +25,6 @@ namespace PhilosophersStepByStep
             _philosopherCount = config.PhilosopherCount;
             _philosophers = new List<Philosopher>();
             _forks = new List<Fork>();
-            _currentStep = 0;
             _monitor = monitor;
             _simulationDuration = simulationDuration;
             InitializeTable(config.PhilosopherNames, forkStrategy ?? new OrderedForkStrategy());
@@ -36,7 +34,6 @@ namespace PhilosophersStepByStep
         public int PhilosopherCount => _philosopherCount;
         public IReadOnlyList<Philosopher> Philosophers => _philosophers.AsReadOnly();
         public IReadOnlyList<Fork> Forks => _forks.AsReadOnly();
-        public int CurrentStep => _currentStep;
 
         /// <summary>
         /// Initializes the table with philosophers and forks.
@@ -84,7 +81,6 @@ namespace PhilosophersStepByStep
                 fork.ForceRelease();
             }
 
-            _currentStep = 0;
         }
 
         /// <summary>
@@ -97,13 +93,13 @@ namespace PhilosophersStepByStep
             var eatingCount = _philosophers.Count(p => p.State == PhilosopherState.Eating);
             var availableForks = _forks.Count(f => f.IsAvailable);
 
-            return $"Step {_currentStep}: {thinkingCount} thinking, {hungryCount} hungry, {eatingCount} eating, {availableForks} forks available";
+            return $"{thinkingCount} thinking, {hungryCount} hungry, {eatingCount} eating, {availableForks} forks available";
         }
 
         public void PrintFinalMetrics()
         {
-            var metrics = _metricsCalculator._totalMetrics;
-            _monitor.PrintMetrics(metrics);
+            _metricsCalculator.CalculateFinalMetrics();
+            _monitor.PrintMetrics(_metricsCalculator._totalMetrics);
         }
     
     }
