@@ -1,5 +1,4 @@
-﻿using PhilosophersStepByStep.Coordinators;
-using PhilosophersStepByStep.Strategies;
+﻿using PhilosophersStepByStep.Strategies;
 using System.Diagnostics;
 
 namespace PhilosophersStepByStep

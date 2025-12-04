@@ -117,7 +117,7 @@ namespace PhilosophersStepByStep
         /// according to the strategy.
         /// </summary>
         /// <returns>True if both forks were successfully acquired; otherwise, false.</returns>
-        private bool TryAcquireForks()
+        public bool TryAcquireForks()
         {
             if (_heldFork1 == null)
             {
