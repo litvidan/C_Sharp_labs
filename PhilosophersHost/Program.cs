@@ -7,6 +7,8 @@ using Microsoft.Extensions.Options;
 using PhilosophersHost.Configuration;
 using PhilosophersHost.HostedServices;
 using PhilosophersHost.Services;
+using PhilosophersHost.Services.Metrics;
+using PhilosophersHost.Strategies;
 
 namespace PhilosophersHost
 {
@@ -25,16 +27,13 @@ namespace PhilosophersHost
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
-                    // 1. Конфигурация: Регистрируем SimulationOptions
                     services.Configure<SimulationOptions>(
                         hostContext.Configuration.GetSection(SimulationOptions.Simulation));
 
-                    // Получаем опции, чтобы прочитать NamesFilePath
                     var options = hostContext.Configuration
                                              .GetSection(SimulationOptions.Simulation)
                                              .Get<SimulationOptions>();
                                              
-                    // 2. Загрузка имен философов
                     string namesFile = options.NamesFilePath;
                     string[] philosopherNames;
 
@@ -63,12 +62,13 @@ namespace PhilosophersHost
 
                     int philosopherCount = philosopherNames.Length;
 
-                    // 3. Основные сервисы
-                    services.AddSingleton<IForkManager>(new ForkManager(philosopherCount));
+                    services.AddSingleton<IMetricsCollector, MetricsCollector>();
+                    services.AddHostedService<MetricsMonitorService>();
+                    services.AddSingleton<IForkManager>(provider => new ForkManager(philosopherCount, provider.GetRequiredService<IMetricsCollector>()));
+                    services.AddSingleton<IPhilosopherStrategy, DeadlockPreventionStrategy>();
                     services.AddHostedService<SimulationLifetimeService>();
 
-                    
-                    // 4. Регистрация философов
+
                     for (int i = 0; i < philosopherCount; i++)
                     {
                         string name = philosopherNames[i];
@@ -76,7 +76,6 @@ namespace PhilosophersHost
                         int leftForkId = i;
                         int rightForkId = (i + 1) % philosopherCount;
 
-                        // 1. Создаем уникальный объект PhilosopherIdentityOptions
                         var identityOptions = new PhilosopherIdentityOptions
                         {
                             Name = name,

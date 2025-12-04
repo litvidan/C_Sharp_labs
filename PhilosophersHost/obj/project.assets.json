@@ -845,16 +845,6 @@
         "build": {
           "buildTransitive/net8.0/System.Text.Json.targets": {}
         }
-      },
-      "PhilosophersStepByStep.Strategies/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v9.0",
-        "compile": {
-          "bin/placeholder/PhilosophersStepByStep.Strategies.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/PhilosophersStepByStep.Strategies.dll": {}
-        }
       }
     }
   },
@@ -2807,18 +2797,12 @@
         "system.text.json.nuspec",
         "useSharedDesignerContext.txt"
       ]
-    },
-    "PhilosophersStepByStep.Strategies/1.0.0": {
-      "type": "project",
-      "path": "../PhilosophersStepByStep.Strategies/PhilosophersStepByStep.Strategies.csproj",
-      "msbuildProject": "../PhilosophersStepByStep.Strategies/PhilosophersStepByStep.Strategies.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net9.0": [
       "Microsoft.CodeAnalysis.CSharp >= 4.14.0",
-      "Microsoft.Extensions.Hosting >= 10.0.0",
-      "PhilosophersStepByStep.Strategies >= 1.0.0"
+      "Microsoft.Extensions.Hosting >= 10.0.0"
     ]
   },
   "packageFolders": {
@@ -2845,11 +2829,7 @@
       "frameworks": {
         "net9.0": {
           "targetAlias": "net9.0",
-          "projectReferences": {
-            "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\7 семестр\\Цэ Хэштег\\PhilosophersStepByStep.Strategies\\PhilosophersStepByStep.Strategies.csproj": {
-              "projectPath": "D:\\DESKTOP\\DOCUMENTS\\ФИТ\\Предметы\\4 курс\\7 семестр\\Цэ Хэштег\\PhilosophersStepByStep.Strategies\\PhilosophersStepByStep.Strategies.csproj"
-            }
-          }
+          "projectReferences": {}
         }
       },
       "warningProperties": {

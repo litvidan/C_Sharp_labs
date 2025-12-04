@@ -9,8 +9,7 @@
       "PhilosophersStepByStep/1.0.0": {
         "dependencies": {
           "Microsoft.CodeAnalysis.CSharp": "4.14.0",
-          "Microsoft.Extensions.Hosting": "10.0.0",
-          "PhilosophersStepByStep.Strategies": "1.0.0"
+          "Microsoft.Extensions.Hosting": "10.0.0"
         },
         "runtime": {
           "PhilosophersStepByStep.dll": {}
@@ -564,14 +563,6 @@
             "fileVersion": "10.0.25.52411"
           }
         }
-      },
-      "PhilosophersStepByStep.Strategies/1.0.0": {
-        "runtime": {
-          "PhilosophersStepByStep.Strategies.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
       }
     }
   },
@@ -839,11 +830,6 @@
       "sha512": "sha512-1Dpjwq9peG/Wt5BNbrzIhTpclfOSqBWZsUO28vVr59yQlkvL5jLBWfpfzRmJ1OY+6DciaY0DUcltyzs4fuZHjw==",
       "path": "system.text.json/10.0.0",
       "hashPath": "system.text.json.10.0.0.nupkg.sha512"
-    },
-    "PhilosophersStepByStep.Strategies/1.0.0": {
-      "type": "project",
-      "serviceable": false,
-      "sha512": ""
     }
   }
 }

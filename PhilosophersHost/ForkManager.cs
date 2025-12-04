@@ -1,56 +1,55 @@
 using System.Threading;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using PhilosophersHost.Services.Metrics;
 
 namespace PhilosophersHost.Services
 {
-    // Интерфейс для внедрения зависимостей
     public interface IForkManager
     {
-        bool TryAcquireForks(int philosopherId, int leftForkId, int rightForkId, CancellationToken cancellationToken);
-        void ReleaseForks(int leftForkId, int rightForkId);
+        bool TryAcquireFork(int forkId, int millisecondsTimeout, CancellationToken cancellationToken);
+        void ReleaseFork(int forkId);
     }
 
     public class ForkManager : IForkManager
     {
         private readonly SemaphoreSlim[] _forks;
+        private readonly IMetricsCollector _metrics;
+        private readonly ConcurrentDictionary<int, long> _acquisitionTimes = new();
 
-        public ForkManager(int count)
+        public ForkManager(int count, IMetricsCollector metrics)
         {
-            // Каждая вилка представлена одним Семафором (доступен только одному потоку)
+            _metrics = metrics;
             _forks = new SemaphoreSlim[count];
             for (int i = 0; i < count; i++)
             {
+                // 1= Available, 0 = InUse
                 _forks[i] = new SemaphoreSlim(1, 1);
             }
         }
 
-        public bool TryAcquireForks(int philosopherId, int leftForkId, int rightForkId, CancellationToken cancellationToken)
+        public bool TryAcquireFork(int forkId, int millisecondsTimeout, CancellationToken cancellationToken)
         {
-            // Стратегия предотвращения Deadlock: всегда брать вилку с меньшим ID первой
-            int firstFork = Math.Min(leftForkId, rightForkId);
-            int secondFork = Math.Max(leftForkId, rightForkId);
 
-            // Пытаемся взять первую вилку, ожидание с отменой
-            if (!_forks[firstFork].Wait(TimeSpan.FromMilliseconds(50), cancellationToken))
+            bool acquired = _forks[forkId].Wait(millisecondsTimeout, cancellationToken);
+
+            if (acquired)
             {
-                return false; // Не удалось взять первую вилку
+                _acquisitionTimes[forkId] = Stopwatch.GetTimestamp();
             }
 
-            // Пытаемся взять вторую вилку, ожидание с отменой
-            if (!_forks[secondFork].Wait(TimeSpan.FromMilliseconds(50), cancellationToken))
-            {
-                // Если не удалось взять вторую, освобождаем первую и возвращаем false
-                _forks[firstFork].Release();
-                return false;
-            }
-
-            return true; // Успешно взяты обе вилки
+            return acquired;
         }
 
-        public void ReleaseForks(int leftForkId, int rightForkId)
+        public void ReleaseFork(int forkId)
         {
-            // Освобождаем вилки
-            _forks[leftForkId].Release();
-            _forks[rightForkId].Release();
+            if (_acquisitionTimes.TryRemove(forkId, out long startTimestamp))
+            {
+                long endTimestamp = Stopwatch.GetTimestamp();
+                double elapsedMs = (endTimestamp - startTimestamp) * 1000.0 / Stopwatch.Frequency;
+                _metrics.RecordForkUsage(forkId, elapsedMs);
+            }
+            _forks[forkId].Release();
         }
     }
 }

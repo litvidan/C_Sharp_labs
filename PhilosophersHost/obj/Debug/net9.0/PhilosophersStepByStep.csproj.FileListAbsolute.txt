@@ -170,8 +170,6 @@ D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\7 семестр\Цэ Х
 D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\7 семестр\Цэ Хэштег\PhilosophersHost\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Diagnostics.EventLog.dll
 D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\7 семестр\Цэ Хэштег\PhilosophersHost\bin\Debug\net9.0\runtimes\browser\lib\net8.0\System.Text.Encodings.Web.dll
 D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\7 семестр\Цэ Хэштег\PhilosophersHost\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Text.Encodings.Web.dll
-D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\7 семестр\Цэ Хэштег\PhilosophersHost\bin\Debug\net9.0\PhilosophersStepByStep.Strategies.dll
-D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\7 семестр\Цэ Хэштег\PhilosophersHost\bin\Debug\net9.0\PhilosophersStepByStep.Strategies.pdb
 D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\7 семестр\Цэ Хэштег\PhilosophersHost\obj\Debug\net9.0\Philosop.5D56D9AE.Up2Date
 D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\7 семестр\Цэ Хэштег\PhilosophersHost\obj\Debug\net9.0\PhilosophersStepByStep.genruntimeconfig.cache
 D:\DESKTOP\DOCUMENTS\ФИТ\Предметы\4 курс\7 семестр\Цэ Хэштег\PhilosophersHost\obj\Debug\net9.0\ref\PhilosophersStepByStep.dll

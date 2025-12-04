@@ -24,14 +24,13 @@ namespace PhilosophersHost.HostedServices
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Симуляция запущена на {Duration} секунд.", _options.DurationSeconds);
+            _logger.LogInformation("🚀 Симуляция запущена на {Duration} секунд.", _options.DurationSeconds);
 
-            // Устанавливаем таймер на общее время симуляции
             _timer = new Timer(
                 state => StopHost(),
                 null,
                 TimeSpan.FromSeconds(_options.DurationSeconds),
-                Timeout.InfiniteTimeSpan // Не повторять
+                Timeout.InfiniteTimeSpan
             );
 
             return Task.CompletedTask;
@@ -39,15 +38,15 @@ namespace PhilosophersHost.HostedServices
 
         private void StopHost()
         {
-            _logger.LogWarning("Время симуляции ({Duration} с) истекло. Завершение работы хоста...", _options.DurationSeconds);
-            // Останавливаем хост, что приведет к отмене CancellationToken у всех BackgroundService
+            _logger.LogWarning("⌚ Время симуляции ({Duration} с) истекло. Завершение работы хоста...", _options.DurationSeconds);
+            
             _appLifetime.StopApplication(); 
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
             _timer?.Dispose();
-            _logger.LogInformation("Служба контроля жизненного цикла завершена.");
+            _logger.LogInformation("🤖 Служба контроля жизненного цикла завершена.");
             return Task.CompletedTask;
         }
     }
