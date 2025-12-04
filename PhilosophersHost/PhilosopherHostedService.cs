@@ -9,6 +9,18 @@ using PhilosophersHost.Strategies;
 
 namespace PhilosophersHost.HostedServices
 {
+    static class EventIds
+    {
+        public static readonly EventId Thinking = new EventId(1, "ThinkingStarted");
+        public static readonly EventId Hungry = new EventId(2, "EatingStarted");
+        public static readonly EventId Eating = new EventId(3, "Eating");
+        public static readonly EventId Finished = new EventId(4, "Finished");
+        public static readonly EventId ForksAcquireFailed = new EventId(5, "ForksAcquireFailed");
+        public static readonly EventId Start = new EventId(6, "Started");
+        public static readonly EventId Stopping = new EventId(7, "Stopping");
+        public static readonly EventId Stopped = new EventId(8, "Stopped");
+    }
+
     public class PhilosopherHostedService : BackgroundService
     {
         private readonly IHostApplicationLifetime _appLifetime;
@@ -61,7 +73,7 @@ namespace PhilosophersHost.HostedServices
         private async Task Think(CancellationToken stoppingToken)
         {
             int time = _random.Next(_options.ThinkingTimeMin, _options.ThinkingTimeMax);
-            _logger.LogInformation("🧠 {Name} думает в течение {Time} мс...", _name, time);
+            _logger.LogInformation(EventIds.Thinking, "🧠 {Name} думает в течение {Time} мс...", _name, time);
 
             var sw = Stopwatch.StartNew();
 
@@ -79,7 +91,7 @@ namespace PhilosophersHost.HostedServices
 
         private async Task Eat(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("🍴 {Name} очень голоден и пытается взять вилки ({Left}) и ({Right})...", _name, _leftForkId, _rightForkId);
+            _logger.LogInformation(EventIds.Hungry, "🍴 {Name} очень голоден и пытается взять вилки ({Left}) и ({Right})...", _name, _leftForkId, _rightForkId);
 
             var sw  = Stopwatch.StartNew();
 
@@ -94,7 +106,7 @@ namespace PhilosophersHost.HostedServices
             if (success)
             {
                 int time = _random.Next(_options.EatingTimeMin, _options.EatingTimeMax);
-                _logger.LogInformation("😋 {Name} начал есть, используя вилки ({Left}) и ({Right}), в течение {Time} мс...", _name, _leftForkId, _rightForkId, time);
+                _logger.LogInformation(EventIds.Eating, "😋 {Name} начал есть, используя вилки ({Left}) и ({Right}), в течение {Time} мс...", _name, _leftForkId, _rightForkId, time);
                 
                 sw.Restart();
                 try { await Task.Delay(time, stoppingToken); }
@@ -103,12 +115,12 @@ namespace PhilosophersHost.HostedServices
                 {
                     _metrics.RecordPhilosopherTime(_id, _name, PhilosopherState.Eating, sw.Elapsed.TotalMilliseconds);
                     _strategy.StopEating(_leftForkId, _rightForkId);
-                    _logger.LogInformation("🏁 {Name} закончил есть и отпустил вилки.", _name);
+                    _logger.LogInformation(EventIds.Finished, "🏁 {Name} закончил есть и отпустил вилки.", _name);
                 }              
             }
             else
             {
-                _logger.LogWarning("😒 {Name} не смог взять обе вилки и отступил.", _name);
+                _logger.LogWarning(EventIds.ForksAcquireFailed, "😒 {Name} не смог взять обе вилки и отступил.", _name);
                 
                 sw.Restart(); 
                         
@@ -126,17 +138,17 @@ namespace PhilosophersHost.HostedServices
 
         private void OnStarted()
         {
-            _logger.LogInformation("👴 {Name} (ID: {Id}) начинает жить.", _name, _id);
+            _logger.LogInformation(EventIds.Start, "👴 {Name} (ID: {Id}) начинает жить.", _name, _id);
         }
 
         private void OnStopping()
         {
-            _logger.LogInformation("🛑 {Name} (ID: {Id}) попросили покинуть стол.", _name, _id);
+            _logger.LogInformation(EventIds.Stopping, "🛑 {Name} (ID: {Id}) попросили покинуть стол.", _name, _id);
         }
 
         private void OnStopped()
         {
-            _logger.LogInformation("✅ {Name} (ID: {Id}) покинул стол.", _name, _id);
+            _logger.LogInformation(EventIds.Stopped, "✅ {Name} (ID: {Id}) покинул стол.", _name, _id);
         }
     }
 }
