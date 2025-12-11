@@ -3,10 +3,6 @@ using System.Diagnostics;
 
 namespace PhilosophersStepByStep
 {
-    /// <summary>
-    /// Represents the dining table where philosophers sit and share forks.
-    /// Manages the single-threaded step-by-step simulation.
-    /// </summary>
     public class Table
     {
         private readonly List<Philosopher> _philosophers;
@@ -16,6 +12,8 @@ namespace PhilosophersStepByStep
 
         private readonly IMonitor _monitor;
         private readonly int _simulationDuration;
+
+        public event EventHandler? StateChanged;
 
         public Table(IMonitor monitor, PhilosopherConfiguration config, IForkStrategy? forkStrategy = null, int simulationDuration = 10000)
         {
@@ -35,57 +33,48 @@ namespace PhilosophersStepByStep
         public IReadOnlyList<Philosopher> Philosophers => _philosophers.AsReadOnly();
         public IReadOnlyList<Fork> Forks => _forks.AsReadOnly();
 
-        /// <summary>
-        /// Initializes the table with philosophers and forks.
-        /// </summary>
         private void InitializeTable(List<string> philosopherNames, IForkStrategy? forkStrategy = null)
         {
             _monitor.PrintTableSetup(_philosopherCount);
 
-            // Create forks
             for (int i = 0; i < _philosopherCount; i++)
             {
-                _forks.Add(new Fork(i, _monitor));
+                var fork = new Fork(i, _monitor);
+                fork.StateChanged += OnComponentStateChanged;
+                _forks.Add(fork);
             }
 
-            // Create philosophers, assign forks and register
             for (int i = 0; i < _philosopherCount; i++)
             {
                 Fork leftFork = _forks[i];
-                Fork rightFork = _forks[(i + 1) % _philosopherCount]; // Circular arrangement
-                
+                Fork rightFork = _forks[(i + 1) % _philosopherCount];
 
                 string philosopherName = philosopherNames[i];
                 var philosopher = new Philosopher(i, philosopherName, leftFork, rightFork, forkStrategy ?? new OrderedForkStrategy());
+                philosopher.StateChanged += OnComponentStateChanged;
                 _philosophers.Add(philosopher);
                 _monitor.PrintSitBetween(philosopherName, i, PhilosopherCount);
             }
             _monitor.PrintTableSetupComplete();
         }
 
+        private void OnComponentStateChanged(object? sender, EventArgs e)
+        {
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
 
-        /// <summary>
-        /// Resets the simulation to initial state.
-        /// </summary>
         public void Reset()
         {
-            // Reset all philosophers
             foreach (var philosopher in _philosophers)
             {
                 philosopher.Reset();
             }
-
-            // Reset all forks
             foreach (var fork in _forks)
             {
                 fork.ForceRelease();
             }
-
         }
 
-        /// <summary>
-        /// Gets a summary of the current simulation state.
-        /// </summary>
         public string GetSimulationSummary()
         {
             var thinkingCount = _philosophers.Count(p => p.State == PhilosopherState.Thinking);
@@ -101,6 +90,5 @@ namespace PhilosophersStepByStep
             _metricsCalculator.CalculateFinalMetrics();
             _monitor.PrintMetrics(_metricsCalculator._totalMetrics);
         }
-    
     }
 }

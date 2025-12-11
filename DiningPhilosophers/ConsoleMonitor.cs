@@ -2,14 +2,11 @@ namespace PhilosophersStepByStep
 {
     public class ConsoleMonitor : IMonitor
     {
-        public void PrintInitialConfiguration(int philosopherCount, string mode, string? namesFilePath)
+        public void PrintInitialConfiguration(int philosopherCount, string? mode, string? namesFilePath)
         {
-            Console.WriteLine("=== Single-Threaded Dining Philosophers Simulation ===\n");
             Console.WriteLine($"Configuration:");
             Console.WriteLine($"- Philosophers: {philosopherCount}");
-            Console.WriteLine($"- Mode: {mode}");
             Console.WriteLine($"- Names file: {(string.IsNullOrEmpty(namesFilePath) ? "None (using default names)" : namesFilePath)}");
-            Console.WriteLine($"- Available modes: manual, auto\n");
         }
 
         public void PrintUnknownMode(string mode)

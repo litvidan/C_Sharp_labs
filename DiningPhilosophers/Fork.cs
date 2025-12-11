@@ -2,9 +2,6 @@ using System.Diagnostics;
 
 namespace PhilosophersStepByStep
 {
-    /// <summary>
-    /// Represents the possible states of a fork.
-    /// </summary>
     public enum ForkState
     {
         Available,
@@ -25,60 +22,50 @@ namespace PhilosophersStepByStep
         }
     }
 
-
-    /// <summary>
-    /// Represents a fork that philosophers can pick up and put down.
-    /// Simple single-threaded implementation for step-by-step simulation.
-    /// </summary>
     public class Fork
     {
         private readonly int _id;
-        private ForkState _state;
+        private ForkState _currentState;
         private Philosopher? _holder;
         private readonly IMonitor _monitor;
 
         private readonly object _lock = new object();
         private Stopwatch _usageTimer = new Stopwatch();
-        public delegate void ForkStateChangedHandler(object sender, ForkStateChangeEventArgs e);
-        public event ForkStateChangedHandler? StateChanged;
+        public event EventHandler<ForkStateChangeEventArgs>? StateChanged;
 
         public Fork(int id, IMonitor monitor)
         {
             _id = id;
-            _state = ForkState.Available;
+            _currentState = ForkState.Available;
             _holder = null;
             _monitor = monitor;
         }
 
         public int Id => _id;
-        public ForkState State
+        public ForkState CurrentState
         {
-            get => _state;
-            set
+            get => _currentState;
+            private set
             {
-                if(_state != value)
+                if(_currentState != value)
                 {
-                    var oldState = _state;
-                    _state = value;
+                    var oldState = _currentState;
+                    _currentState = value;
                     StateChanged?.Invoke(this, new ForkStateChangeEventArgs(oldState, value, DateTime.UtcNow));
                 }
             }   
         }
-        public bool IsAvailable => State == ForkState.Available;
+        public bool IsAvailable => CurrentState == ForkState.Available;
+        public bool IsTaken => CurrentState == ForkState.InUse;
         public Philosopher? Holder => _holder;
 
-        /// <summary>
-        /// Attempts to pick up the fork. Returns true if successful, false if already taken.
-        /// </summary>
-        /// <param name="philosopherId">ID of the philosopher trying to pick up the fork</param>
-        /// <returns>True if fork was picked up successfully</returns>
         public bool TryPickUp(Philosopher philosopher)
         {
             lock(_lock)
             {
-                if(State == ForkState.Available)
+                if(CurrentState == ForkState.Available)
                 {
-                    State = ForkState.InUse;
+                    CurrentState = ForkState.InUse;
                     _holder = philosopher;
                     _usageTimer.Start();
                     return true;
@@ -87,39 +74,28 @@ namespace PhilosophersStepByStep
             }
         }
 
-        /// <summary>
-        /// Puts down the fork, making it available for other philosophers.
-        /// </summary>
-        /// <param name="philosopherId">ID of the philosopher putting down the fork</param>
         public void PutDown(Philosopher philosopher)
         {
             lock(_lock)
             {
                 if(_holder == philosopher)
                 {
-                    State = ForkState.Available;
+                    CurrentState = ForkState.Available;
                     _holder = null;
                     _usageTimer.Stop();
                 }
             }
         }
 
-        /// <summary>
-        /// Forces the fork to be available (for cleanup or reset scenarios).
-        /// </summary>
         public void ForceRelease()
         {
-            if (State == ForkState.InUse)
-            {
-                //_monitor.PrintForkForceRelease(forkId: _id, holder: _holder?.Name ?? "Null");
-            }
-            State = ForkState.Available;
+            CurrentState = ForkState.Available;
             _holder = null;
         }
 
         public string GetStatusDescription()
         {
-            switch (State)
+            switch (CurrentState)
             {
                 case ForkState.Available:
                     return "Available";
@@ -129,6 +105,5 @@ namespace PhilosophersStepByStep
                     return "Unknown state";
             }
         }
-
     }
 }

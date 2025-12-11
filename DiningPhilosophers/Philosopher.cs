@@ -4,10 +4,6 @@ using PhilosophersStepByStep.Strategies;
 
 namespace PhilosophersStepByStep
 {
-
-    /// <summary>
-    /// Represents the possible states of a philosopher.
-    /// </summary>
     public enum PhilosopherState
     {
         Thinking,
@@ -29,10 +25,6 @@ namespace PhilosophersStepByStep
         }
     }
 
-    /// <summary>
-    /// Represents a philosopher who alternates between thinking and eating.
-    /// Single-threaded step-by-step simulation with discrete time steps.
-    /// </summary>
     public class Philosopher
     {
         private readonly int _id;
@@ -45,10 +37,9 @@ namespace PhilosophersStepByStep
         private PhilosopherState _state;
         private Fork? _heldFork1;
         private Fork? _heldFork2;
-        private int _attemptsToGetSecondFork; // Count attempts to get second fork
+        private int _attemptsToGetSecondFork;
 
-        public delegate void PhilosopherStateChangedHandler(object sender, PhilosopherStateChangeEventArgs e);
-        public event PhilosopherStateChangedHandler? StateChanged;
+        public event EventHandler<PhilosopherStateChangeEventArgs>? StateChanged;
 
         public Philosopher(int id, string name, Fork leftFork, Fork rightFork, IForkStrategy forkStrategy)
         {
@@ -71,7 +62,7 @@ namespace PhilosophersStepByStep
         public PhilosopherState State
         {
             get => _state;
-            set
+            private set
             {
                 if(_state != value)
                 {
@@ -82,52 +73,38 @@ namespace PhilosophersStepByStep
             }
         }
 
-        /// <summary>
-        /// Runs the philosopher's lifecycle in a loop until cancellation is requested.
-        /// The philosopher alternates between thinking, becoming hungry and trying to acquire forks,
-        /// eating for a random amount of time, and then releasing the forks.
-        /// </summary>
-        /// <param name="token">CancellationToken to stop the simulation gracefully.</param>
         public void Run(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
-                // Thinking
-                int thinkingTime = _random.Next(30, 100); // Thinking time between 30 and 100 ms
                 State = PhilosopherState.Thinking;
-                Thread.Sleep(thinkingTime);
+                Thread.Sleep(_random.Next(30, 100));
 
-                // Hungry
                 State = PhilosopherState.Hungry;
-                TryAcquireForks();
-
-                // Eating  
-                int eatingTime = _random.Next(40, 50); // Eating time between 40 and 50 ms
+                while (!TryAcquireForks())
+                {
+                    if (token.IsCancellationRequested) return;
+                    Thread.Sleep(10);
+                }
+                
                 State = PhilosopherState.Eating;
-                Thread.Sleep(eatingTime);
+                Thread.Sleep(_random.Next(40, 50));
 
                 ReleaseForks();
             }
         }
 
-        /// <summary>
-        /// Attempts to acquire both forks according to the fork strategy.
-        /// Tries to pick up the first fork, then the second fork.
-        /// Releases the first fork if the second cannot be acquired after several attempts,
-        /// according to the strategy.
-        /// </summary>
-        /// <returns>True if both forks were successfully acquired; otherwise, false.</returns>
         public bool TryAcquireForks()
         {
             if (_heldFork1 == null)
             {
-                Fork firstFork = (Fork)_forkStrategy.GetFirstFork(_id, _leftFork, _rightFork, _leftFork.State == ForkState.InUse, _rightFork.State == ForkState.InUse);
+                Fork firstFork = (Fork)_forkStrategy.GetFirstFork(_id, _leftFork, _rightFork, _leftFork.IsTaken, _rightFork.IsTaken);
 
                 if (firstFork.TryPickUp(this))
                 {
                     _heldFork1 = firstFork;
                     _attemptsToGetSecondFork = 0;
-                    Thread.Sleep(20); // Fork picking 20 ms
+                    Thread.Sleep(20);
                 }
                 else
                 {
@@ -142,7 +119,7 @@ namespace PhilosophersStepByStep
             if (secondFork.TryPickUp(this))
             {
                 _heldFork2 = secondFork;
-                Thread.Sleep(20); // Fork picking 20 ms
+                Thread.Sleep(20);
                 return true;
             }
             else
@@ -158,10 +135,6 @@ namespace PhilosophersStepByStep
             }
         }
 
-        /// <summary>
-        /// Releases both forks currently held by the philosopher.
-        /// Sets held fork references to null after releasing.
-        /// </summary>
         public void ReleaseForks()
         {
             if (_heldFork1 != null)
@@ -176,12 +149,8 @@ namespace PhilosophersStepByStep
             }
         }
 
-        /// <summary>
-        /// Resets the philosopher to initial state.
-        /// </summary>
         public void Reset()
         {
-            // Release any held forks
             if (_heldFork1 != null)
             {
                 _heldFork1.ForceRelease();
