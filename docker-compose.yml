@@ -1,0 +1,105 @@
+﻿services:
+  table-service:
+    build:
+      context: .
+      dockerfile: DiningPhilosophers.TableService/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - PHILOSOPHERS_COUNT=5
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  philosopher-0:
+    build:
+      context: .
+      dockerfile: DiningPhilosophers.PhilosopherService/Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://+:8081
+      - PHILOSOPHER_NAME=Socrates
+      - PHILOSOPHER_ID=philosopher-0
+      - LEFT_FORK_ID=0
+      - RIGHT_FORK_ID=4
+      - TABLE_SERVICE_URL=http://table-service:8080
+      - SIMULATION_DURATION_MINUTES=1
+    depends_on:
+      table-service:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+
+  philosopher-1:
+    build:
+      context: .
+      dockerfile: DiningPhilosophers.PhilosopherService/Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://+:8082
+      - PHILOSOPHER_NAME=Plato
+      - PHILOSOPHER_ID=philosopher-1
+      - LEFT_FORK_ID=1
+      - RIGHT_FORK_ID=0
+      - TABLE_SERVICE_URL=http://table-service:8080
+      - SIMULATION_DURATION_MINUTES=1
+    depends_on:
+      table-service:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+
+  philosopher-2:
+    build:
+      context: .
+      dockerfile: DiningPhilosophers.PhilosopherService/Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://+:8083
+      - PHILOSOPHER_NAME=Aristotle
+      - PHILOSOPHER_ID=philosopher-2
+      - LEFT_FORK_ID=2
+      - RIGHT_FORK_ID=1
+      - TABLE_SERVICE_URL=http://table-service:8080
+      - SIMULATION_DURATION_MINUTES=1
+    depends_on:
+      table-service:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+
+  philosopher-3:
+    build:
+      context: .
+      dockerfile: DiningPhilosophers.PhilosopherService/Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://+:8084
+      - PHILOSOPHER_NAME=Descartes
+      - PHILOSOPHER_ID=philosopher-3
+      - LEFT_FORK_ID=3
+      - RIGHT_FORK_ID=2
+      - TABLE_SERVICE_URL=http://table-service:8080
+      - SIMULATION_DURATION_MINUTES=1
+    depends_on:
+      table-service:
+        condition: service_healthy
+    ports:
+      - "8084:8084"
+
+  philosopher-4:
+    build:
+      context: .
+      dockerfile: DiningPhilosophers.PhilosopherService/Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://+:8085
+      - PHILOSOPHER_NAME=Kant
+      - PHILOSOPHER_ID=philosopher-4
+      - LEFT_FORK_ID=4
+      - RIGHT_FORK_ID=3
+      - TABLE_SERVICE_URL=http://table-service:8080
+      - SIMULATION_DURATION_MINUTES=1
+    depends_on:
+      table-service:
+        condition: service_healthy
+    ports:
+      - "8085:8085"
