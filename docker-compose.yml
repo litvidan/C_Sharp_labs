@@ -1,4 +1,15 @@
 ﻿services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   table-service:
     build:
       context: .
@@ -8,8 +19,30 @@
     environment:
       - ASPNETCORE_URLS=http://+:8080
       - PHILOSOPHERS_COUNT=5
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  coordinator-service:
+    build:
+      context: .
+      dockerfile: DiningPhilosophers.CoordinatorService/Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://+:8090
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8090:8090"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,10 +58,15 @@
       - LEFT_FORK_ID=0
       - RIGHT_FORK_ID=4
       - TABLE_SERVICE_URL=http://table-service:8080
+      - RABBITMQ_HOST=rabbitmq
       - SIMULATION_DURATION_MINUTES=1
     depends_on:
       table-service:
         condition: service_healthy
+      coordinator-service:
+        condition: service_healthy # Changed to healthy
+      rabbitmq:
+        condition: service_healthy # Added rabbitmq dependency
     ports:
       - "8081:8081"
 
@@ -43,9 +81,14 @@
       - LEFT_FORK_ID=1
       - RIGHT_FORK_ID=0
       - TABLE_SERVICE_URL=http://table-service:8080
+      - RABBITMQ_HOST=rabbitmq
       - SIMULATION_DURATION_MINUTES=1
     depends_on:
       table-service:
+        condition: service_healthy
+      coordinator-service:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     ports:
       - "8082:8082"
@@ -61,9 +104,14 @@
       - LEFT_FORK_ID=2
       - RIGHT_FORK_ID=1
       - TABLE_SERVICE_URL=http://table-service:8080
+      - RABBITMQ_HOST=rabbitmq
       - SIMULATION_DURATION_MINUTES=1
     depends_on:
       table-service:
+        condition: service_healthy
+      coordinator-service:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     ports:
       - "8083:8083"
@@ -79,9 +127,14 @@
       - LEFT_FORK_ID=3
       - RIGHT_FORK_ID=2
       - TABLE_SERVICE_URL=http://table-service:8080
+      - RABBITMQ_HOST=rabbitmq
       - SIMULATION_DURATION_MINUTES=1
     depends_on:
       table-service:
+        condition: service_healthy
+      coordinator-service:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     ports:
       - "8084:8084"
@@ -97,9 +150,14 @@
       - LEFT_FORK_ID=4
       - RIGHT_FORK_ID=3
       - TABLE_SERVICE_URL=http://table-service:8080
+      - RABBITMQ_HOST=rabbitmq
       - SIMULATION_DURATION_MINUTES=1
     depends_on:
       table-service:
+        condition: service_healthy
+      coordinator-service:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     ports:
       - "8085:8085"

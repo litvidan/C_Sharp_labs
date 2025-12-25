@@ -1,12 +1,16 @@
-﻿using DiningPhilosophers.Contracts;
+﻿using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+using DiningPhilosophers.Contracts;
 using Microsoft.Extensions.Hosting;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using System.Net.Http.Json;
 
 namespace DiningPhilosophers.PhilosopherService
 {
     public class PhilosopherWorker : BackgroundService
     {
-        private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<PhilosopherWorker> _logger;
         private readonly string _philosopherName;
         private readonly string _philosopherId;
@@ -14,13 +18,21 @@ namespace DiningPhilosophers.PhilosopherService
         private readonly int _rightForkId;
         private readonly Uri _tableServiceBaseUrl;
         private readonly TimeSpan _simulationDuration;
-        private readonly Random _random = new Random();
-        private HttpClient _httpClient = null!;
+        private readonly HttpClient _httpClient;
+        private readonly IConnection _rabbitConnection;
+        private readonly Random _random = new();
 
-        public PhilosopherWorker(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<PhilosopherWorker> logger)
+        private TaskCompletionSource<bool> _permissionGrantedTcs = new();
+
+        private const string RequestQueue = "permission_requests";
+        private const string ReleaseQueue = "forks_released";
+        private const string GrantExchange = "permission_grants";
+
+        public PhilosopherWorker(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<PhilosopherWorker> logger, IConnection rabbitConnection)
         {
-            _httpClientFactory = httpClientFactory;
             _logger = logger;
+            _httpClient = httpClientFactory.CreateClient();
+            _rabbitConnection = rabbitConnection;
 
             _philosopherName = configuration["PHILOSOPHER_NAME"] ?? "Unknown";
             _philosopherId = configuration["PHILOSOPHER_ID"] ?? Guid.NewGuid().ToString();
@@ -28,43 +40,52 @@ namespace DiningPhilosophers.PhilosopherService
             _rightForkId = int.Parse(configuration["RIGHT_FORK_ID"] ?? "1");
             _tableServiceBaseUrl = new Uri(configuration["TABLE_SERVICE_URL"] ?? "http://localhost:8080");
             _simulationDuration = TimeSpan.FromMinutes(double.Parse(configuration["SIMULATION_DURATION_MINUTES"] ?? "1"));
+            _httpClient.BaseAddress = _tableServiceBaseUrl;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            using var consumerChannel = _rabbitConnection.CreateModel();
+            SetupRabbitMqConsumer(consumerChannel, stoppingToken);
+            
             var startTime = DateTime.UtcNow;
-            _httpClient = _httpClientFactory.CreateClient();
-            _httpClient.BaseAddress = _tableServiceBaseUrl;
 
-            // Report initial state
             await ReportStateChange("Thinking", stoppingToken);
 
             while (!stoppingToken.IsCancellationRequested && (DateTime.UtcNow - startTime) < _simulationDuration)
             {
-                // 1. Thinking
                 _logger.LogInformation("{Name} is thinking.", _philosopherName);
                 await Task.Delay(_random.Next(2000, 5000), stoppingToken);
 
-                // 2. Hungry
                 await ReportStateChange("Hungry", stoppingToken);
-                bool hasBothForks = false;
-                while (!hasBothForks && !stoppingToken.IsCancellationRequested)
-                {
-                    hasBothForks = await TryAcquireForksStrategically(stoppingToken);
-                    if (!hasBothForks)
-                    {
-                        await Task.Delay(_random.Next(200, 700), stoppingToken);
-                    }
-                }
+                _logger.LogInformation("{Name} is hungry and requesting permission to eat.", _philosopherName);
+                
+                _permissionGrantedTcs = new TaskCompletionSource<bool>();
+                PublishEvent(RequestQueue, new PermissionRequestEvent { PhilosopherId = _philosopherId });
+                
+                await _permissionGrantedTcs.Task;
 
                 if (stoppingToken.IsCancellationRequested) break;
 
-                // 3. Eating
-                await ReportStateChange("Eating", stoppingToken);
-                await Task.Delay(_random.Next(2000, 5000), stoppingToken);
+                _logger.LogInformation("{Name} received permission. Taking forks.", _philosopherName);
+                var leftTaken = await TryTakeFork(_leftForkId, stoppingToken);
+                var rightTaken = await TryTakeFork(_rightForkId, stoppingToken);
 
-                // 4. Release forks and transition back to thinking
-                await ReleaseBothForks(stoppingToken);
+                if (leftTaken && rightTaken)
+                {
+                    await ReportStateChange("Eating", stoppingToken);
+                    await Task.Delay(_random.Next(2000, 5000), stoppingToken);
+                }
+                else
+                {
+                    _logger.LogError("{Name} failed to take forks even with permission!", _philosopherName);
+                }
+
+                await ReleaseFork(_leftForkId, stoppingToken);
+                await ReleaseFork(_rightForkId, stoppingToken);
+                PublishEvent(ReleaseQueue, new ForksReleasedEvent { PhilosopherId = _philosopherId });
+                _logger.LogInformation("{Name} released forks and notified coordinator.", _philosopherName);
+
                 await ReportStateChange("Thinking", stoppingToken);
             }
 
@@ -72,28 +93,35 @@ namespace DiningPhilosophers.PhilosopherService
             await _httpClient.PostAsJsonAsync("api/metrics/finish", new TakeForkRequest { PhilosopherId = _philosopherId }, stoppingToken);
         }
 
-        private async Task<bool> TryAcquireForksStrategically(CancellationToken token)
+        private void SetupRabbitMqConsumer(IModel channel, CancellationToken token)
         {
-            int firstForkId = Math.Min(_leftForkId, _rightForkId);
-            int secondForkId = Math.Max(_leftForkId, _rightForkId);
+            channel.ExchangeDeclare(GrantExchange, ExchangeType.Direct);
+            var queueName = $"{_philosopherId}_grant_queue";
+            channel.QueueDeclare(queueName, durable: false, exclusive: true, autoDelete: true);
+            channel.QueueBind(queueName, GrantExchange, routingKey: _philosopherId);
 
-            _logger.LogInformation("{Name} trying to take first fork {ForkId}.", _philosopherName, firstForkId);
-            if (await TryTakeFork(firstForkId, token))
+            var consumer = new AsyncEventingBasicConsumer(channel); // Reverted to Async consumer
+            consumer.Received += (sender, args) =>
             {
-                _logger.LogInformation("{Name} trying to take second fork {ForkId}.", _philosopherName, secondForkId);
-                if (await TryTakeFork(secondForkId, token))
+                var body = args.Body.ToArray();
+                var message = Encoding.UTF8.GetString(body);
+                var grantEvent = JsonSerializer.Deserialize<PermissionGrantedEvent>(message);
+                if (grantEvent?.PhilosopherId == _philosopherId)
                 {
-                    return true;
+                    _logger.LogInformation("{Name} received grant event.", _philosopherName);
+                    _permissionGrantedTcs.TrySetResult(true);
                 }
-                else
-                {
-                    _logger.LogWarning("{Name} failed to get second fork {SecondForkId}, releasing first fork {FirstForkId}.", _philosopherName, secondForkId, firstForkId);
-                    await ReleaseFork(firstForkId, token);
-                    return false;
-                }
-            }
-            _logger.LogInformation("{Name} failed to get first fork {ForkId}.", _philosopherName, firstForkId);
-            return false;
+                return Task.CompletedTask; // Return a completed task as required by async consumer
+            };
+            channel.BasicConsume(queueName, autoAck: true, consumer: consumer);
+        }
+
+        private void PublishEvent<T>(string routingKey, T data)
+        {
+            using var channel = _rabbitConnection.CreateModel();
+            var message = JsonSerializer.Serialize(data);
+            var body = Encoding.UTF8.GetBytes(message);
+            channel.BasicPublish(exchange: "", routingKey: routingKey, body: body);
         }
 
         private async Task<bool> TryTakeFork(int forkId, CancellationToken token)
@@ -105,13 +133,6 @@ namespace DiningPhilosophers.PhilosopherService
         private async Task ReleaseFork(int forkId, CancellationToken token)
         {
             await _httpClient.PostAsync($"api/forks/{forkId}/release", null, token);
-            _logger.LogInformation("{Name} released fork {ForkId}.", _philosopherName, forkId);
-        }
-
-        private async Task ReleaseBothForks(CancellationToken token)
-        {
-            await ReleaseFork(_leftForkId, token);
-            await ReleaseFork(_rightForkId, token);
         }
 
         private async Task ReportStateChange(string newState, CancellationToken token)

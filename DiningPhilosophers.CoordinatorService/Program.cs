@@ -1,22 +1,10 @@
-﻿using DiningPhilosophers.TableService.Services;
+﻿using DiningPhilosophers.CoordinatorService;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-var philosophersCountString = Environment.GetEnvironmentVariable("PHILOSOPHERS_COUNT");
-if (!int.TryParse(philosophersCountString, out var philosophersCount) || philosophersCount < 2)
-{
-    philosophersCount = 5;
-    Console.WriteLine($"PHILOSOPHERS_COUNT environment variable not set or invalid. Defaulting to {philosophersCount}.");
-}
-
-builder.Services.AddSingleton<IForkManager>(new ForkManager(philosophersCount));
-builder.Services.AddSingleton<IMetricsCollector>(new MetricsCollector(philosophersCount));
+builder.Services.AddHealthChecks();
 
 builder.Services.AddSingleton<IConnection>(sp =>
 {
@@ -40,27 +28,15 @@ builder.Services.AddSingleton<IConnection>(sp =>
             Thread.Sleep(delaySeconds * 1000);
         }
     }
+    // If we exit the loop, all retries have failed.
     throw new Exception("Could not connect to RabbitMQ after multiple retries.");
 });
 
-builder.Services.AddHealthChecks();
+builder.Services.AddHostedService<CoordinatorWorker>();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseAuthorization();
-app.MapControllers();
+app.MapGet("/", () => "Coordinator service is running.");
 app.MapHealthChecks("/health");
-
-var metrics = app.Services.GetRequiredService<IMetricsCollector>();
-for (int i = 0; i < philosophersCount; i++)
-{
-    metrics.RecordForkUsage(i, false);
-}
 
 app.Run();

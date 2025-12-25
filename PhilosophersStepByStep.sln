@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiningPhilosophers.TableSer
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiningPhilosophers.PhilosopherService", "DiningPhilosophers.PhilosopherService\DiningPhilosophers.PhilosopherService.csproj", "{4838DFD3-3BF0-44EF-AC82-BEA0FE1D751A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiningPhilosophers.CoordinatorService", "DiningPhilosophers.CoordinatorService\DiningPhilosophers.CoordinatorService.csproj", "{A73632A0-C851-40AB-860E-02E69F36FE29}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,18 @@ Global
 		{4838DFD3-3BF0-44EF-AC82-BEA0FE1D751A}.Release|x64.Build.0 = Release|Any CPU
 		{4838DFD3-3BF0-44EF-AC82-BEA0FE1D751A}.Release|x86.ActiveCfg = Release|Any CPU
 		{4838DFD3-3BF0-44EF-AC82-BEA0FE1D751A}.Release|x86.Build.0 = Release|Any CPU
+		{A73632A0-C851-40AB-860E-02E69F36FE29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A73632A0-C851-40AB-860E-02E69F36FE29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A73632A0-C851-40AB-860E-02E69F36FE29}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A73632A0-C851-40AB-860E-02E69F36FE29}.Debug|x64.Build.0 = Debug|Any CPU
+		{A73632A0-C851-40AB-860E-02E69F36FE29}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A73632A0-C851-40AB-860E-02E69F36FE29}.Debug|x86.Build.0 = Debug|Any CPU
+		{A73632A0-C851-40AB-860E-02E69F36FE29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A73632A0-C851-40AB-860E-02E69F36FE29}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A73632A0-C851-40AB-860E-02E69F36FE29}.Release|x64.ActiveCfg = Release|Any CPU
+		{A73632A0-C851-40AB-860E-02E69F36FE29}.Release|x64.Build.0 = Release|Any CPU
+		{A73632A0-C851-40AB-860E-02E69F36FE29}.Release|x86.ActiveCfg = Release|Any CPU
+		{A73632A0-C851-40AB-860E-02E69F36FE29}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
