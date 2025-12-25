@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using DiningPhilosophers.Contracts;
 using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
@@ -24,9 +23,9 @@ namespace DiningPhilosophers.PhilosopherService
 
         private TaskCompletionSource<bool> _permissionGrantedTcs = new();
 
-        private const string RequestQueue = "permission_requests";
-        private const string ReleaseQueue = "forks_released";
-        private const string GrantExchange = "permission_grants";
+        private const string RequestQueueName = "permission_requests";
+        private const string ReleaseQueueName = "forks_released";
+        private const string GrantExchangeName = "permission_grants";
 
         public PhilosopherWorker(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<PhilosopherWorker> logger, IConnection rabbitConnection)
         {
@@ -46,10 +45,9 @@ namespace DiningPhilosophers.PhilosopherService
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             using var consumerChannel = _rabbitConnection.CreateModel();
-            SetupRabbitMqConsumer(consumerChannel, stoppingToken);
+            SetupRabbitMqConsumer(consumerChannel);
             
             var startTime = DateTime.UtcNow;
-
             await ReportStateChange("Thinking", stoppingToken);
 
             while (!stoppingToken.IsCancellationRequested && (DateTime.UtcNow - startTime) < _simulationDuration)
@@ -61,17 +59,19 @@ namespace DiningPhilosophers.PhilosopherService
                 _logger.LogInformation("{Name} is hungry and requesting permission to eat.", _philosopherName);
                 
                 _permissionGrantedTcs = new TaskCompletionSource<bool>();
-                PublishEvent(RequestQueue, new PermissionRequestEvent { PhilosopherId = _philosopherId });
+                PublishEvent(RequestQueueName, new PermissionRequestEvent 
+                { 
+                    PhilosopherId = _philosopherId,
+                    LeftForkId = _leftForkId,
+                    RightForkId = _rightForkId
+                });
                 
                 await _permissionGrantedTcs.Task;
 
                 if (stoppingToken.IsCancellationRequested) break;
 
                 _logger.LogInformation("{Name} received permission. Taking forks.", _philosopherName);
-                var leftTaken = await TryTakeFork(_leftForkId, stoppingToken);
-                var rightTaken = await TryTakeFork(_rightForkId, stoppingToken);
-
-                if (leftTaken && rightTaken)
+                if (await TryTakeFork(_leftForkId, stoppingToken) && await TryTakeFork(_rightForkId, stoppingToken))
                 {
                     await ReportStateChange("Eating", stoppingToken);
                     await Task.Delay(_random.Next(2000, 5000), stoppingToken);
@@ -83,7 +83,12 @@ namespace DiningPhilosophers.PhilosopherService
 
                 await ReleaseFork(_leftForkId, stoppingToken);
                 await ReleaseFork(_rightForkId, stoppingToken);
-                PublishEvent(ReleaseQueue, new ForksReleasedEvent { PhilosopherId = _philosopherId });
+                PublishEvent(ReleaseQueueName, new ForksReleasedEvent 
+                { 
+                    PhilosopherId = _philosopherId,
+                    LeftForkId = _leftForkId,
+                    RightForkId = _rightForkId
+                });
                 _logger.LogInformation("{Name} released forks and notified coordinator.", _philosopherName);
 
                 await ReportStateChange("Thinking", stoppingToken);
@@ -93,25 +98,23 @@ namespace DiningPhilosophers.PhilosopherService
             await _httpClient.PostAsJsonAsync("api/metrics/finish", new TakeForkRequest { PhilosopherId = _philosopherId }, stoppingToken);
         }
 
-        private void SetupRabbitMqConsumer(IModel channel, CancellationToken token)
+        private void SetupRabbitMqConsumer(IModel channel)
         {
-            channel.ExchangeDeclare(GrantExchange, ExchangeType.Direct);
+            channel.ExchangeDeclare(GrantExchangeName, ExchangeType.Direct);
             var queueName = $"{_philosopherId}_grant_queue";
             channel.QueueDeclare(queueName, durable: false, exclusive: true, autoDelete: true);
-            channel.QueueBind(queueName, GrantExchange, routingKey: _philosopherId);
+            channel.QueueBind(queueName, GrantExchangeName, routingKey: _philosopherId);
 
-            var consumer = new AsyncEventingBasicConsumer(channel); // Reverted to Async consumer
+            var consumer = new AsyncEventingBasicConsumer(channel);
             consumer.Received += (sender, args) =>
             {
-                var body = args.Body.ToArray();
-                var message = Encoding.UTF8.GetString(body);
-                var grantEvent = JsonSerializer.Deserialize<PermissionGrantedEvent>(message);
+                var grantEvent = JsonSerializer.Deserialize<PermissionGrantedEvent>(Encoding.UTF8.GetString(args.Body.ToArray()));
                 if (grantEvent?.PhilosopherId == _philosopherId)
                 {
                     _logger.LogInformation("{Name} received grant event.", _philosopherName);
                     _permissionGrantedTcs.TrySetResult(true);
                 }
-                return Task.CompletedTask; // Return a completed task as required by async consumer
+                return Task.CompletedTask;
             };
             channel.BasicConsume(queueName, autoAck: true, consumer: consumer);
         }

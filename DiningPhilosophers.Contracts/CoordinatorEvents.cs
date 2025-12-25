@@ -4,6 +4,8 @@
     public class PermissionRequestEvent
     {
         public string PhilosopherId { get; set; } = string.Empty;
+        public int LeftForkId { get; set; }
+        public int RightForkId { get; set; }
     }
 
     // Coordinator -> Philosopher
@@ -16,5 +18,7 @@
     public class ForksReleasedEvent
     {
         public string PhilosopherId { get; set; } = string.Empty;
+        public int LeftForkId { get; set; }
+        public int RightForkId { get; set; }
     }
 }
